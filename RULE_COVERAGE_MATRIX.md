@@ -19,6 +19,52 @@ the tables; they run via node profiles inside the hosted cluster — live valida
 `ocp4-cis-node-worker` 57 PASS (COMPLIANT), `ocp4-stig-node-worker` 2 PASS / 1 FAIL,
 `rhcos4-stig-worker` 17 PASS / 98 FAIL / 1 MANUAL (unhardened RHCOS, expected).
 
+## Column value legend
+
+**"Mgmt tailored scan" column** — what happens when this rule runs in the
+management-cluster tailored scan (TailoredProfile with the HyperShift variables):
+
+| Value | Meaning |
+|---|---|
+| `CORRECT hosted-CP data (aware)` | The rule is HyperShift-aware: its fetch path is templated with the HyperShift variables, so it reads the hosted control plane's own objects (`kas-config`, etcd/KCM pods in `clusters-<name>`, the HostedCluster CR). The PASS/FAIL truthfully describes the hosted cluster. |
+| `auto N/A` | Rule carries `platform: not ocp4-on-hypershift`; the scan suppresses it automatically (NOT-APPLICABLE, no result object). Correct behavior — the rule cannot say anything meaningful about the hosted cluster from the management side. |
+| `disabled -> CEL <rule>` | Disabled in the validated TailoredProfile because the OpenSCAP rule mis-evaluates on HCP (etcd false positives, wrong-target reads); the named CEL CustomRule in `customrules.yaml` provides the authoritative replacement check. |
+| `disabled (wrong-target)` | Disabled in the validated TailoredProfile: the rule would read the MANAGEMENT cluster's resources and report about the wrong cluster. The authoritative answer must come from the in-hosted scan. |
+| `WRONG-TARGET (reads mgmt)` | NOT disabled in the validated profile (kept for demonstration): the result reflects the management cluster, not the hosted one. Disable in production tailored profiles, or read it as a management-cluster finding. |
+| `MANUAL` | OCIL-only rule with no automated check; always reports MANUAL. Perform the attestation against the hosted cluster. |
+| `wrong-target; architectural N/A` | The checked object (`kubeapiservers`/`openshiftapiservers` operator CRs) has no HCP equivalent and tenants cannot set the risky option at all — record as N/A in the SSP rather than scanning. |
+| `N/A on OVN` | SDN-gated rule; NOT-APPLICABLE on OVN-Kubernetes clusters (all current). |
+
+**"In-hosted tailored scan" column** — what happens when the rule runs inside the
+hosted cluster (CO installed in-hosted, using the `hosted-*-tailored` profiles):
+
+| Value | Meaning |
+|---|---|
+| `covered in-hosted` | The rule evaluates the hosted cluster's own in-cluster data (RBAC, SCC, registries, routes, MOTD, quotas...) and is authoritative there. |
+| `disabled in-hosted (CP rule)` | Control-plane configuration rule. It SHOULD go NOT-APPLICABLE via the `ocp4-on-hypershift-hosted` CPE, but that detection is broken (CMP-4521), so the in-hosted tailored profile disables it explicitly; without the workaround it false-FAILs against namespaces that do not exist. The answer comes from the mgmt scan or CEL instead. |
+| `runs on HostedCluster-spec mirror` | The rule reads an in-cluster config CR (`oauths/cluster`, `apiservers/cluster`, ...) that HyperShift syncs FROM `HostedCluster.spec`. Usually accurate, but one step removed from the source of truth — when it disagrees with the mgmt/CEL result, trust the HostedCluster side and treat the drift itself as a finding. |
+| `N/A (mgmt-side rule)` | Rule carries `platform: ocp4-on-hypershift` and only exists for management-cluster scans (e.g. NetworkPolicies in the CP namespace); NOT-APPLICABLE in-hosted. |
+| `MANUAL` | Same as above — manual attestation. |
+| `N/A on OVN` | SDN-gated. |
+
+**"Recommended source" column** — where the authoritative automated answer should
+come from in the combined deployment:
+
+| Value | Meaning |
+|---|---|
+| `Mgmt scan` | The management tailored scan's result is the truth (HyperShift-aware rule). |
+| `Hosted scan` | The in-hosted scan's result is the truth (in-cluster concern). |
+| `CEL` | The CEL CustomRule on the management cluster is the truth (HostedCluster.spec is the source of truth, or the OpenSCAP rule is a false positive). |
+| `CEL + Hosted` | CEL covers the HostedCluster-spec half; the in-hosted mirror result complements it. |
+| `Manual` | Human attestation against the hosted cluster. |
+| `SSP statement` | No automated equivalent anywhere; document as architectural N/A. |
+| `-` | Not applicable on current topologies. |
+
+**"Live mgmt" / "Live in-hosted" columns** — actual ComplianceCheckResult statuses
+from the 2026-07-31 validation runs (`PASS`/`FAIL`/`MANUAL`). `-` means no result was
+produced in that scan: the rule was disabled, NOT-APPLICABLE, or not part of that
+profile's selection.
+
 ## 1. Layer contributions and live scan totals
 
 | Scan | Where | Result |
