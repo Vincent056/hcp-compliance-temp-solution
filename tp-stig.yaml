@@ -1,0 +1,71 @@
+apiVersion: compliance.openshift.io/v1alpha1
+kind: TailoredProfile
+metadata:
+  name: hypershift-stig-hcp-demo
+  namespace: openshift-compliance
+spec:
+  description: Management-cluster tailored scan of HostedCluster hcp-demo with wrong-target rules disabled
+  extends: ocp4-stig
+  title: "STIG scan of hosted control plane hcp-demo (temp solution)"
+  setValues:
+    - name: ocp4-hypershift-cluster
+      value: hcp-demo
+      rationale: HyperShift version detection
+    - name: ocp4-hypershift-namespace-prefix
+      value: clusters
+      rationale: control plane namespace detection
+  disableRules:
+    - name: ocp4-api-server-tls-security-profile
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-audit-error-alert-exists
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-audit-log-forwarding-uses-tls
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-audit-profile-set
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-classification-banner
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-cluster-logging-operator-exist
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-cluster-version-operator-exists
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-cluster-version-operator-verify-integrity
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-container-security-operator-exists
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-fips-mode-enabled-on-all-nodes
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-image-pruner-active
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-imagestream-sets-schedule
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-ingress-controller-tls-security-profile
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-oauth-logout-url-set
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-oauth-or-oauthclient-inactivity-timeout
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-oauth-or-oauthclient-token-maxage
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-ocp-allowed-registries
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-ocp-allowed-registries-for-import
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-ocp-insecure-allowed-registries-for-import
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-ocp-insecure-registries
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-openshift-motd-exists
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-project-config-and-template-network-policy
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-project-config-and-template-resource-quota
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-resource-requests-quota-per-project
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-routes-rate-limit
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-scansettingbinding-exists
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)
+    - name: ocp4-scansettings-have-schedule
+      rationale: Wrong-target or false-positive on HyperShift management scan (see HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md)

@@ -1,0 +1,42 @@
+# ScanSettingBindings for the three temp-solution scans (CIS binding is in ssb.yaml)
+apiVersion: compliance.openshift.io/v1alpha1
+kind: ScanSettingBinding
+metadata:
+  name: hcp-cel-workarounds
+  namespace: openshift-compliance
+profiles:
+- apiGroup: compliance.openshift.io/v1alpha1
+  kind: TailoredProfile
+  name: hcp-cel-workarounds
+settingsRef:
+  apiGroup: compliance.openshift.io/v1alpha1
+  kind: ScanSetting
+  name: default
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: ScanSettingBinding
+metadata:
+  name: hypershift-stig
+  namespace: openshift-compliance
+profiles:
+- apiGroup: compliance.openshift.io/v1alpha1
+  kind: TailoredProfile
+  name: hypershift-stig-hcp-demo
+settingsRef:
+  apiGroup: compliance.openshift.io/v1alpha1
+  kind: ScanSetting
+  name: default
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: ScanSettingBinding
+metadata:
+  name: hypershift-high
+  namespace: openshift-compliance
+profiles:
+- apiGroup: compliance.openshift.io/v1alpha1
+  kind: TailoredProfile
+  name: hypershift-high-hcp-demo
+settingsRef:
+  apiGroup: compliance.openshift.io/v1alpha1
+  kind: ScanSetting
+  name: default

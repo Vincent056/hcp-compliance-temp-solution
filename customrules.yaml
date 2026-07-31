@@ -1,0 +1,360 @@
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-etcd-cert-file
+  namespace: openshift-compliance
+spec:
+  title: "etcd server cert file configured (env-based, replaces ocp4-etcd-cert-file)"
+  id: hcp_etcd_cert_file
+  description: "etcd server cert file configured (env-based, replaces ocp4-etcd-cert-file). Temporary CEL workaround / gap-filler for HyperShift hosted control planes."
+  failureReason: "etcd container in clusters-hcp-demo does not set ETCD_CERT_FILE appropriately (env-based TLS config)."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: pods
+      kubernetesInputSpec:
+        apiVersion: v1
+        resource: pods
+        resourceNamespace: clusters-hcp-demo
+  expression: |
+    pods.items.exists(p, has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd') &&
+    pods.items.filter(p, has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd')
+      .all(p, p.spec.containers.exists(c, c.name == 'etcd') &&
+        p.spec.containers.filter(c, c.name == 'etcd')
+          .all(c, c.env.exists(e, e.name == 'ETCD_CERT_FILE' && has(e.value) && e.value != '')))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-etcd-key-file
+  namespace: openshift-compliance
+spec:
+  title: "etcd server key file configured (replaces ocp4-etcd-key-file)"
+  id: hcp_etcd_key_file
+  description: "etcd server key file configured (replaces ocp4-etcd-key-file). Temporary CEL workaround / gap-filler for HyperShift hosted control planes."
+  failureReason: "etcd container in clusters-hcp-demo does not set ETCD_KEY_FILE appropriately (env-based TLS config)."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: pods
+      kubernetesInputSpec:
+        apiVersion: v1
+        resource: pods
+        resourceNamespace: clusters-hcp-demo
+  expression: |
+    pods.items.exists(p, has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd') &&
+    pods.items.filter(p, has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd')
+      .all(p, p.spec.containers.exists(c, c.name == 'etcd') &&
+        p.spec.containers.filter(c, c.name == 'etcd')
+          .all(c, c.env.exists(e, e.name == 'ETCD_KEY_FILE' && has(e.value) && e.value != '')))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-etcd-client-cert-auth
+  namespace: openshift-compliance
+spec:
+  title: "etcd client cert auth enabled (replaces ocp4-etcd-client-cert-auth)"
+  id: hcp_etcd_client_cert_auth
+  description: "etcd client cert auth enabled (replaces ocp4-etcd-client-cert-auth). Temporary CEL workaround / gap-filler for HyperShift hosted control planes."
+  failureReason: "etcd container in clusters-hcp-demo does not set ETCD_CLIENT_CERT_AUTH appropriately (env-based TLS config)."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: pods
+      kubernetesInputSpec:
+        apiVersion: v1
+        resource: pods
+        resourceNamespace: clusters-hcp-demo
+  expression: |
+    pods.items.exists(p, has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd') &&
+    pods.items.filter(p, has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd')
+      .all(p, p.spec.containers.exists(c, c.name == 'etcd') &&
+        p.spec.containers.filter(c, c.name == 'etcd')
+          .all(c, c.env.exists(e, e.name == 'ETCD_CLIENT_CERT_AUTH' && has(e.value) && e.value == 'true')))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-etcd-peer-cert-file
+  namespace: openshift-compliance
+spec:
+  title: "etcd peer cert file configured (replaces ocp4-etcd-peer-cert-file)"
+  id: hcp_etcd_peer_cert_file
+  description: "etcd peer cert file configured (replaces ocp4-etcd-peer-cert-file). Temporary CEL workaround / gap-filler for HyperShift hosted control planes."
+  failureReason: "etcd container in clusters-hcp-demo does not set ETCD_PEER_CERT_FILE appropriately (env-based TLS config)."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: pods
+      kubernetesInputSpec:
+        apiVersion: v1
+        resource: pods
+        resourceNamespace: clusters-hcp-demo
+  expression: |
+    pods.items.exists(p, has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd') &&
+    pods.items.filter(p, has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd')
+      .all(p, p.spec.containers.exists(c, c.name == 'etcd') &&
+        p.spec.containers.filter(c, c.name == 'etcd')
+          .all(c, c.env.exists(e, e.name == 'ETCD_PEER_CERT_FILE' && has(e.value) && e.value != '')))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-etcd-peer-key-file
+  namespace: openshift-compliance
+spec:
+  title: "etcd peer key file configured (replaces ocp4-etcd-peer-key-file)"
+  id: hcp_etcd_peer_key_file
+  description: "etcd peer key file configured (replaces ocp4-etcd-peer-key-file). Temporary CEL workaround / gap-filler for HyperShift hosted control planes."
+  failureReason: "etcd container in clusters-hcp-demo does not set ETCD_PEER_KEY_FILE appropriately (env-based TLS config)."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: pods
+      kubernetesInputSpec:
+        apiVersion: v1
+        resource: pods
+        resourceNamespace: clusters-hcp-demo
+  expression: |
+    pods.items.exists(p, has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd') &&
+    pods.items.filter(p, has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd')
+      .all(p, p.spec.containers.exists(c, c.name == 'etcd') &&
+        p.spec.containers.filter(c, c.name == 'etcd')
+          .all(c, c.env.exists(e, e.name == 'ETCD_PEER_KEY_FILE' && has(e.value) && e.value != '')))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-etcd-peer-client-cert-auth
+  namespace: openshift-compliance
+spec:
+  title: "etcd peer client cert auth enabled (replaces ocp4-etcd-peer-client-cert-auth)"
+  id: hcp_etcd_peer_client_cert_auth
+  description: "etcd peer client cert auth enabled (replaces ocp4-etcd-peer-client-cert-auth). Temporary CEL workaround / gap-filler for HyperShift hosted control planes."
+  failureReason: "etcd container in clusters-hcp-demo does not set ETCD_PEER_CLIENT_CERT_AUTH appropriately (env-based TLS config)."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: pods
+      kubernetesInputSpec:
+        apiVersion: v1
+        resource: pods
+        resourceNamespace: clusters-hcp-demo
+  expression: |
+    pods.items.exists(p, has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd') &&
+    pods.items.filter(p, has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd')
+      .all(p, p.spec.containers.exists(c, c.name == 'etcd') &&
+        p.spec.containers.filter(c, c.name == 'etcd')
+          .all(c, c.env.exists(e, e.name == 'ETCD_PEER_CLIENT_CERT_AUTH' && has(e.value) && e.value == 'true')))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-fips-enabled
+  namespace: openshift-compliance
+spec:
+  title: "Hosted clusters must enable FIPS mode (STIG SRG-APP-000514 / NIST SC-13)"
+  id: hcp_fips_enabled
+  description: "Hosted clusters must enable FIPS mode (STIG SRG-APP-000514 / NIST SC-13). Temporary CEL workaround / gap-filler for HyperShift hosted control planes."
+  failureReason: "One or more HostedClusters does not set .spec.fips=true. FIPS is immutable; the cluster must be recreated with fips enabled."
+  severity: high
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+        resourceNamespace: clusters
+  expression: |
+    hcs.items.size() > 0 &&
+    hcs.items.all(hc, has(hc.spec.fips) && hc.spec.fips == true)
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-etcd-secret-encryption
+  namespace: openshift-compliance
+spec:
+  title: "Hosted cluster etcd secrets must be encrypted (NIST SC-28)"
+  id: hcp_etcd_secret_encryption
+  description: "Hosted cluster etcd secrets must be encrypted (NIST SC-28). Temporary CEL workaround / gap-filler for HyperShift hosted control planes."
+  failureReason: "HostedCluster .spec.secretEncryption is not set to kms or aescbc."
+  severity: high
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+        resourceNamespace: clusters
+  expression: |
+    hcs.items.size() > 0 &&
+    hcs.items.all(hc, has(hc.spec.secretEncryption) && has(hc.spec.secretEncryption.type) &&
+      (hc.spec.secretEncryption.type == 'kms' || hc.spec.secretEncryption.type == 'aescbc'))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-audit-profile
+  namespace: openshift-compliance
+spec:
+  title: "Hosted cluster API server audit profile must log request bodies (STIG / NIST AU-2)"
+  id: hcp_audit_profile
+  description: "Hosted cluster API server audit profile must log request bodies (STIG / NIST AU-2). Temporary CEL workaround / gap-filler for HyperShift hosted control planes."
+  failureReason: "HostedCluster .spec.configuration.apiServer.audit.profile is not WriteRequestBodies or AllRequestBodies."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+        resourceNamespace: clusters
+  expression: |
+    hcs.items.size() > 0 &&
+    hcs.items.all(hc, has(hc.spec.configuration) && has(hc.spec.configuration.apiServer) &&
+      has(hc.spec.configuration.apiServer.audit) && has(hc.spec.configuration.apiServer.audit.profile) &&
+      hc.spec.configuration.apiServer.audit.profile in ['WriteRequestBodies', 'AllRequestBodies'])
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-api-tls-security-profile
+  namespace: openshift-compliance
+spec:
+  title: "Hosted cluster API server must not use Old TLS profile (NIST SC-8)"
+  id: hcp_api_tls_security_profile
+  description: "Hosted cluster API server must not use Old TLS profile (NIST SC-8). Temporary CEL workaround / gap-filler for HyperShift hosted control planes."
+  failureReason: "HostedCluster sets an Old or weak Custom tlsSecurityProfile on the API server."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+        resourceNamespace: clusters
+  expression: |
+    hcs.items.all(hc,
+      !has(hc.spec.configuration) || !has(hc.spec.configuration.apiServer) ||
+      !has(hc.spec.configuration.apiServer.tlsSecurityProfile) ||
+      (hc.spec.configuration.apiServer.tlsSecurityProfile.type != 'Old' &&
+       (hc.spec.configuration.apiServer.tlsSecurityProfile.type != 'Custom' ||
+        (has(hc.spec.configuration.apiServer.tlsSecurityProfile.custom.minTLSVersion) &&
+         !(hc.spec.configuration.apiServer.tlsSecurityProfile.custom.minTLSVersion in ['VersionTLS10', 'VersionTLS11'])))))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-oauth-token-maxage
+  namespace: openshift-compliance
+spec:
+  title: "Hosted cluster OAuth access token max age must be 8h or less (STIG)"
+  id: hcp_oauth_token_maxage
+  description: "Hosted cluster OAuth access token max age must be 8h or less (STIG). Temporary CEL workaround / gap-filler for HyperShift hosted control planes."
+  failureReason: "HostedCluster .spec.configuration.oauth.tokenConfig.accessTokenMaxAgeSeconds is unset or exceeds 28800."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+        resourceNamespace: clusters
+  expression: |
+    hcs.items.size() > 0 &&
+    hcs.items.all(hc, has(hc.spec.configuration) && has(hc.spec.configuration.oauth) &&
+      has(hc.spec.configuration.oauth.tokenConfig) &&
+      has(hc.spec.configuration.oauth.tokenConfig.accessTokenMaxAgeSeconds) &&
+      hc.spec.configuration.oauth.tokenConfig.accessTokenMaxAgeSeconds <= 28800)
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-oauth-inactivity-timeout
+  namespace: openshift-compliance
+spec:
+  title: "Hosted cluster OAuth token inactivity timeout must be set (STIG SRG-APP-000190 / NIST AC-12)"
+  id: hcp_oauth_inactivity_timeout
+  description: "Hosted cluster OAuth token inactivity timeout must be set (STIG SRG-APP-000190 / NIST AC-12). Temporary CEL workaround / gap-filler for HyperShift hosted control planes."
+  failureReason: "HostedCluster .spec.configuration.oauth.tokenConfig.accessTokenInactivityTimeout is not set."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+        resourceNamespace: clusters
+  expression: |
+    hcs.items.size() > 0 &&
+    hcs.items.all(hc, has(hc.spec.configuration) && has(hc.spec.configuration.oauth) &&
+      has(hc.spec.configuration.oauth.tokenConfig) &&
+      has(hc.spec.configuration.oauth.tokenConfig.accessTokenInactivityTimeout))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-audit-webhook
+  namespace: openshift-compliance
+spec:
+  title: "Hosted cluster audit webhook must be configured for log offload (NIST AU-4(1))"
+  id: hcp_audit_webhook
+  description: "Hosted cluster audit webhook must be configured for log offload (NIST AU-4(1)). Temporary CEL workaround / gap-filler for HyperShift hosted control planes."
+  failureReason: "HostedCluster .spec.auditWebhook is not set; hosted KAS audit logs are not offloaded."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+        resourceNamespace: clusters
+  expression: |
+    hcs.items.size() > 0 &&
+    hcs.items.all(hc, has(hc.spec.auditWebhook) && hc.spec.auditWebhook.name != '')
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-nodepool-config
+  namespace: openshift-compliance
+spec:
+  title: "Every NodePool must carry node hardening configuration"
+  id: hcp_nodepool_config
+  description: "Every NodePool must carry node hardening configuration. Temporary CEL workaround / gap-filler for HyperShift hosted control planes."
+  failureReason: "A NodePool has no .spec.config; worker nodes receive no hardening MachineConfigs."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: nps
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: nodepools
+        resourceNamespace: clusters
+  expression: |
+    nps.items.size() == 0 ||
+    nps.items.all(np, has(np.spec.config) && np.spec.config.size() > 0)

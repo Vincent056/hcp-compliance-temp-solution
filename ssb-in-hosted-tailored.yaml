@@ -1,0 +1,19 @@
+apiVersion: compliance.openshift.io/v1alpha1
+kind: ScanSettingBinding
+metadata:
+  name: hosted-platform-tailored
+  namespace: openshift-compliance
+profiles:
+- apiGroup: compliance.openshift.io/v1alpha1
+  kind: TailoredProfile
+  name: hosted-cis-tailored
+- apiGroup: compliance.openshift.io/v1alpha1
+  kind: TailoredProfile
+  name: hosted-stig-tailored
+- apiGroup: compliance.openshift.io/v1alpha1
+  kind: TailoredProfile
+  name: hosted-high-tailored
+settingsRef:
+  apiGroup: compliance.openshift.io/v1alpha1
+  kind: ScanSetting
+  name: default

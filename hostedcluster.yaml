@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clusters
+---
+# NOTE: create the pull secret separately before applying this manifest:
+#   oc create secret generic hcp-demo-pull-secret -n clusters \
+#     --from-file=.dockerconfigjson=<your-pull-secret.json> --type=kubernetes.io/dockerconfigjson
+---
+apiVersion: hypershift.openshift.io/v1beta1
+kind: HostedCluster
+metadata:
+  name: hcp-demo
+  namespace: clusters
+spec:
+  release:
+    image: registry.build10.ci.openshift.org/ci-ln-b6zqd5k/release@sha256:8e2cdfab191a18e534cda6a26bcb06a0bc1c1823709ee1602d6d45a349bf80dd
+  pullSecret:
+    name: hcp-demo-pull-secret
+  infraID: hcp-demo
+  controllerAvailabilityPolicy: SingleReplica
+  olmCatalogPlacement: guest
+  infrastructureAvailabilityPolicy: SingleReplica
+  platform:
+    type: None
+  dns:
+    baseDomain: ci-ln-b6zqd5k-76ef8.aws-4.ci.openshift.org
+  etcd:
+    managementType: Managed
+    managed:
+      storage:
+        type: PersistentVolume
+        persistentVolume:
+          size: 8Gi
+  networking:
+    clusterNetwork:
+    - cidr: 10.132.0.0/14
+    serviceNetwork:
+    - cidr: 172.31.0.0/16
+    networkType: OVNKubernetes
+  services:
+  - service: APIServer
+    servicePublishingStrategy:
+      type: LoadBalancer
+  - service: OAuthServer
+    servicePublishingStrategy:
+      type: Route
+  - service: Konnectivity
+    servicePublishingStrategy:
+      type: Route
+  - service: Ignition
+    servicePublishingStrategy:
+      type: Route

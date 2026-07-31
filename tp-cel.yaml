@@ -1,0 +1,51 @@
+apiVersion: compliance.openshift.io/v1alpha1
+kind: TailoredProfile
+metadata:
+  name: hcp-cel-workarounds
+  namespace: openshift-compliance
+spec:
+  title: HCP CEL workarounds and gap rules
+  description: etcd env-based checks replacing false-positive rules + HostedCluster STIG/High gap checks
+  enableRules:
+    - kind: CustomRule
+      name: hcp-etcd-cert-file
+      rationale: HyperShift temp compliance workaround
+    - kind: CustomRule
+      name: hcp-etcd-key-file
+      rationale: HyperShift temp compliance workaround
+    - kind: CustomRule
+      name: hcp-etcd-client-cert-auth
+      rationale: HyperShift temp compliance workaround
+    - kind: CustomRule
+      name: hcp-etcd-peer-cert-file
+      rationale: HyperShift temp compliance workaround
+    - kind: CustomRule
+      name: hcp-etcd-peer-key-file
+      rationale: HyperShift temp compliance workaround
+    - kind: CustomRule
+      name: hcp-etcd-peer-client-cert-auth
+      rationale: HyperShift temp compliance workaround
+    - kind: CustomRule
+      name: hcp-fips-enabled
+      rationale: HyperShift temp compliance workaround
+    - kind: CustomRule
+      name: hcp-etcd-secret-encryption
+      rationale: HyperShift temp compliance workaround
+    - kind: CustomRule
+      name: hcp-audit-profile
+      rationale: HyperShift temp compliance workaround
+    - kind: CustomRule
+      name: hcp-api-tls-security-profile
+      rationale: HyperShift temp compliance workaround
+    - kind: CustomRule
+      name: hcp-oauth-token-maxage
+      rationale: HyperShift temp compliance workaround
+    - kind: CustomRule
+      name: hcp-oauth-inactivity-timeout
+      rationale: HyperShift temp compliance workaround
+    - kind: CustomRule
+      name: hcp-audit-webhook
+      rationale: HyperShift temp compliance workaround
+    - kind: CustomRule
+      name: hcp-nodepool-config
+      rationale: HyperShift temp compliance workaround
