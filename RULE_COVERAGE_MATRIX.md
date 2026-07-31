@@ -1,5 +1,19 @@
 # Full Rule Coverage Matrix: CIS / STIG / High on Hosted Control Planes
 
+**Docs:** [Solution README](README.md) · [Rule Coverage Matrix](RULE_COVERAGE_MATRIX.md) · [Scan Mechanics Guide](docs-background/HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md) · [Strategy & Gap Analysis](docs-background/HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) · [Validation Report](docs-background/HCP_SCAN_VALIDATION_REPORT.md)
+
+## TL;DR
+
+One row per platform rule of CIS (94), STIG (48), and NIST High (134), showing which
+layer truthfully covers it — management tailored scan, in-hosted scan, or CEL
+CustomRule — with LIVE results from both scan locations of the 2026-07-31 validation.
+Read the [column value legend](#column-value-legend) first, then jump to your
+benchmark: [CIS](#2-ocp4-cis-platform-profile) ·
+[STIG](#3-ocp4-stig-platform-profile) · [High](#4-ocp4-high-platform-profile) ·
+[node summary](#5-node-dimension-summary-per-rule-tables-intentionally-omitted).
+Bottom line: combined layers cover 97% / 100% / 98% of automatable platform rules;
+the only hard gap is the two `no-unsupported-config-overrides` rules (SSP statement).
+
 Generated 2026-07-31 from ComplianceAsCode content (CIS v1.9.0, STIG v2r3, NIST rev-4)
 merged with LIVE results from BOTH validated scan locations on cluster
 `ci-ln-b6zqd5k-76ef8` (CO v1.9.1 in both places):

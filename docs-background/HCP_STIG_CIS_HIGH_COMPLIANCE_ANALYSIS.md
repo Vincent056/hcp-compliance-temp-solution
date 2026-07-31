@@ -1,5 +1,18 @@
 # Reaching STIG, CIS, and NIST 800-53 High Compliance for Self-Managed Hosted Control Planes
 
+**Docs:** [Solution README](../README.md) · [Rule Coverage Matrix](../RULE_COVERAGE_MATRIX.md) · [Scan Mechanics Guide](HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md) · [Strategy & Gap Analysis](HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) · [Validation Report](HCP_SCAN_VALIDATION_REPORT.md)
+
+## TL;DR
+
+The strategy document: how to reach CIS, STIG, and NIST High for hosted clusters
+using five layers (in-hosted platform scans, in-hosted node scans, management
+tailored scans, management self-scans, CEL CustomRules on HostedCluster/NodePool
+spec). Contains the per-profile gap classification that sized the problem
+(STIG has only 6 HyperShift-aware rules; High inherits all 57 from CIS), the CEL
+rule catalog (since implemented as `customrules.yaml` and validated 14/14), the
+NodePool MachineConfig remediation transport, and the upstream fixes (since filed —
+see errata). For current live numbers use the Solution README and the matrix.
+
 > **Post-validation errata (2026-07-31).** All five layers proposed here were
 > subsequently validated live (see the repo README and RULE_COVERAGE_MATRIX.md).
 > Corrections against reality:

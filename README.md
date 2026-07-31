@@ -1,5 +1,7 @@
 # Temporary Compliance Solution for Hosted Control Planes: CIS + STIG + NIST 800-53 High
 
+**Docs:** [Solution README](README.md) · [Rule Coverage Matrix](RULE_COVERAGE_MATRIX.md) · [Scan Mechanics Guide](docs-background/HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md) · [Strategy & Gap Analysis](docs-background/HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) · [Validation Report](docs-background/HCP_SCAN_VALIDATION_REPORT.md)
+
 **Status: VALIDATED end-to-end on a live cluster, 2026-07-31.**
 Environment: OCP 4.21.0 nightly management cluster (AWS), Compliance Operator **v1.9.1**
 (downstream), MCE **v2.17.1**, HostedCluster `hcp-demo` (none-platform, CP-only,
@@ -49,7 +51,7 @@ STIG mgmt scan (only 6 aware rules); the in-hosted + CEL layers close most of it
 | CMP-4523 (Story) | Collector SA lacks `nodepools` RBAC for CEL inputs |
 | CMP-4524 (Story) | Extend HyperShift awareness to the HostedCluster-derivable rules |
 
-Full per-rule detail: `RULE_COVERAGE_MATRIX.md`. Multi-cluster fleets: section 10.
+Full per-rule detail: [`RULE_COVERAGE_MATRIX.md`](RULE_COVERAGE_MATRIX.md). Multi-cluster fleets: section 10.
 
 ---
 
@@ -164,7 +166,7 @@ since hosted clusters run no MCO (scan-only in this validation).
 | Covered — CEL | 15 | 6 etcd + `api-server-tls-security-profile(+-not-old/-custom)` + `audit-logging-enabled`/`audit-profile-set` + `fips` + OAuth max-age/inactivity + audit webhook |
 | Correctly NOT-APPLICABLE | 9 | CIS 4 + `file-integrity-*` (2, `not ocp4-on-hypershift`) + SDN-gated proxy-kubeconfig (3, OVN) |
 | Covered — in-hosted tailored scan (validated, section 8) | ~30 | the CIS-13 plus: `banner-or-login-template-set`, `default-ingress-ca-replaced`, `ingress-controller-certificate`/`-tls-security-profile`, `resource-requests-limits-in-daemonset/deployment/statefulset`, `resource-requests-quota`, `route-ip-whitelist`, `routes-protected-by-tls`, `routes-rate-limit`, `api-server-api-priority-flowschema-catch-all`, `gitops-operator-exists`, `cluster-logging-operator-exist`, `cluster-version-operator-exists`/`-verify-integrity`, `compliance-notification-enabled`, `scansettingbinding-exists` |
-| Gap/other layers | 4 | `no-unsupported-config-overrides` x2 (architectural, as CIS); `audit-error-alert-exists` (mgmt); `cluster-wide-proxy-set` (CEL rule available in `docs-background/HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md` section 7.2(h), not deployed here — no proxy in this environment) |
+| Gap/other layers | 4 | `no-unsupported-config-overrides` x2 (architectural, as CIS); `audit-error-alert-exists` (mgmt); `cluster-wide-proxy-set` (CEL rule available in [`HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md`](docs-background/HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) section 7.2(h), not deployed here — no proxy in this environment) |
 | Manual attestation | 25 | superset of CIS manual rules |
 
 Net (combined): **~98 of 100 automatable platform rules (98%) covered — 51
@@ -199,7 +201,7 @@ NodePool-delivered hardening workload as STIG).
    etcd is configured via `ETCD_*` env vars, the content only inspects pod args. Do
    NOT fix content yet per current plan — this package disables the six rules and
    replaces them 1:1 with CEL. Upstream fix tracked separately (see
-   `docs-background/HCP_SCAN_VALIDATION_REPORT.md` section 5).
+   [`HCP_SCAN_VALIDATION_REPORT.md`](docs-background/HCP_SCAN_VALIDATION_REPORT.md) section 5).
 2. **RBAC**: `api-resource-collector` can read `hostedclusters` out of the box (they
    aggregate into cluster-reader) but NOT `nodepools` — the NodePool CEL rule
    returned ERROR with a forbidden message until `rbac-hypershift-read.yaml` was
@@ -214,11 +216,11 @@ NodePool-delivered hardening workload as STIG).
 
 ## 4. Related documents
 
-- `docs-background/HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md` — mechanism internals + full CIS/PCI rule
+- [`HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md`](docs-background/HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md) — mechanism internals + full CIS/PCI rule
   dispositions
-- `docs-background/HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md` — the five-layer strategy and the CEL
+- [`HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md`](docs-background/HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) — the five-layer strategy and the CEL
   rule catalog this package implements
-- `docs-background/HCP_SCAN_VALIDATION_REPORT.md` — first validation run (CIS) and the etcd
+- [`HCP_SCAN_VALIDATION_REPORT.md`](docs-background/HCP_SCAN_VALIDATION_REPORT.md) — first validation run (CIS) and the etcd
   false-positive evidence
 
 The `hcp-demo` HostedCluster and all scan objects are left in place on
@@ -275,7 +277,7 @@ PASS, `api-server-profiling-protected-by-rbac` PASS,
 `configure-network-policies-namespaces` FAIL, STIG `classification-banner` /
 `openshift-motd-exists` / `oauth-logout-url-set` FAIL, `image-pruner-active` PASS.
 
-`RULE_COVERAGE_MATRIX.md` now carries live results from BOTH scan locations for every
+[`RULE_COVERAGE_MATRIX.md`](RULE_COVERAGE_MATRIX.md) now carries live results from BOTH scan locations for every
 platform rule of all three profiles.
 
 ### Environment notes for reproduction

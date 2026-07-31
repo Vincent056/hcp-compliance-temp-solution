@@ -1,5 +1,18 @@
 # Validation Report: Compliance Operator v1.9.1 Scanning a Hosted Control Plane from the Management Cluster
 
+**Docs:** [Solution README](../README.md) · [Rule Coverage Matrix](../RULE_COVERAGE_MATRIX.md) · [Scan Mechanics Guide](HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md) · [Strategy & Gap Analysis](HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) · [Validation Report](HCP_SCAN_VALIDATION_REPORT.md)
+
+## TL;DR
+
+The first live validation run: Compliance Operator v1.9.1 + MCE 2.17.1 on an OCP 4.21
+management cluster scanning HostedCluster `hcp-demo` with the CIS tailored profile.
+Verdict PASS — dual-path fetches, CPE detection, and genuine hosted-cluster findings
+all confirmed with direct evidence, plus the first bug discovery (six etcd rules
+false-FAIL on 4.21 HCP, later CMP-4520) and the CI-environment HostedCluster quirks
+(`SingleReplica`, `olmCatalogPlacement: guest`, both immutable). Includes a
+reproduction quick-reference. Later phases (STIG/High/CEL/in-hosted) are in the
+Solution README sections 8-10.
+
 **Date:** 2026-07-31 (UTC)
 **Environment:** OpenShift `4.21.0-0.nightly-2026-07-20-173555` CI launch cluster on AWS
 (us-east-1, 3 masters + 3 workers spanning 2 AZs), cluster

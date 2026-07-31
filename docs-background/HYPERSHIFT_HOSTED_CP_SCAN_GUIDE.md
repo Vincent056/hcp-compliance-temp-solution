@@ -1,5 +1,17 @@
 # Scanning Hosted Control Planes (HyperShift) with the Compliance Operator
 
+**Docs:** [Solution README](../README.md) · [Rule Coverage Matrix](../RULE_COVERAGE_MATRIX.md) · [Scan Mechanics Guide](HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md) · [Strategy & Gap Analysis](HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) · [Validation Report](HCP_SCAN_VALIDATION_REPORT.md)
+
+## TL;DR
+
+How the management-cluster tailored scan works under the hood: two TailoredProfile
+variables drive Go-template dual-path fetches (hosted CP namespace instead of the
+standard one) and flip the `ocp4-on-hypershift` platform. 47 of 94 CIS platform rules
+are HyperShift-aware; 19 automated wrong-target rules should be disabled (full lists
+and a ready TailoredProfile inside); PCI-DSS dispositions included. Written before
+the live validation — read the errata below for the two places reality differs, and
+see the Solution README for the validated end-to-end package.
+
 > **Post-validation errata (2026-07-31).** This document describes the designed
 > mechanism. Live validation (CO v1.9.1, see the repo README and
 > HCP_SCAN_VALIDATION_REPORT.md) found two places where reality currently differs:
