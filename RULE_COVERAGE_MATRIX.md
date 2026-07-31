@@ -413,8 +413,8 @@ All five node scans were live-validated on hcp-aws (4.20.32, 2 workers):
 | Benchmark | Node profiles | Rules | Live result | Reading |
 |---|---|---|---|---|
 | CIS | `ocp4-cis-node` | ~103 | 57 PASS / 0 FAIL — **COMPLIANT** | 4.20 workers pass out of the box |
-| STIG | `ocp4-stig-node` + `rhcos4-stig` | 121 | 2P/1F and 17P/1M/98F | OS FAILs = NodePool-delivered hardening backlog (no MCO in hosted clusters) |
-| High | `ocp4-high-node` + `rhcos4-high` | 123 | 61P/3M/1F and 40P/4M/194F | same hardening backlog against the NIST High OS baseline |
+| STIG | `ocp4-stig-node` + `rhcos4-stig` | 121 | 2 PASS / 1 FAIL and 17 PASS / 1 MANUAL / 98 FAIL | OS FAILs = NodePool-delivered hardening backlog (no MCO in hosted clusters) |
+| High | `ocp4-high-node` + `rhcos4-high` | 123 | 61 PASS / 3 MANUAL / 1 FAIL and 40 PASS / 4 MANUAL / 194 FAIL | same hardening backlog against the NIST High OS baseline |
 
 Node remediation transport (MachineConfigs via `NodePool.spec.config` on the
 management cluster) is described in the README and the analysis doc; this validation

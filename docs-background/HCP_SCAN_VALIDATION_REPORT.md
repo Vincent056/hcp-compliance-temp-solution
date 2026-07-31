@@ -177,7 +177,7 @@ oc get ccr | grep kubeadmin                                             # empty 
 oc get ccr hypershift-cis-hcp-demo-audit-log-forwarding-webhook          # exists = CPE proof
 ```
 
-Full manifests used in this run are preserved in the session scratchpad
+Full manifests used in this run are preserved in this repository
 (`hostedcluster.yaml`, `tailoredprofile.yaml`, `ssb.yaml`).
 
 ## 7. Follow-ups

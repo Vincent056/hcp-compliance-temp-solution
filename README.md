@@ -4,9 +4,23 @@
 
 **Status: VALIDATED end-to-end on a live cluster, 2026-07-31.**
 Environment: OCP 4.21.0 nightly management cluster (AWS), Compliance Operator **v1.9.1**
-(downstream), MCE **v2.17.1**, HostedCluster `hcp-demo` (none-platform, CP-only,
-left running for further testing). Scan-only: no remediations were applied
-(`default` ScanSetting, auto-apply off).
+(downstream), MCE **v2.17.1**, HostedCluster `hcp-demo` (none-platform, control-plane-only)
+and AWS HostedCluster `hcp-aws` (4.20.32, 2 workers). Scan-only: no remediations
+were applied. The validation clusters have since been torn down; every result below
+is preserved in these docs and reproducible from the manifests.
+
+## Background in 60 seconds
+
+With Hosted Control Planes (HCP, the product form of the HyperShift project), a
+cluster's control plane (kube-apiserver, etcd, controllers) does not run inside the
+cluster itself - it runs as ordinary pods on a separate **management cluster**, in a
+namespace named `<prefix>-<clustername>`. The **hosted cluster** contains only worker
+nodes and workloads. A compliance scan can only see the cluster it runs in, so no
+single scan can assess a hosted cluster completely: control-plane configuration is
+only visible from the management side, in-cluster settings (RBAC, registries,
+routes...) only from inside the hosted cluster. This repo provides and live-validates
+the combination of scans and custom checks that together cover the CIS, DISA STIG,
+and NIST 800-53 High benchmarks for hosted clusters.
 
 ## TL;DR
 
@@ -34,9 +48,9 @@ changes**, by combining four scan layers (all validated live in this repo):
 | Mgmt scan, HyperShift-aware (truthful hosted-CP results) | 47 | 6 | 57 |
 | CEL CustomRules (replacements + gap rules) | 10 | 6 | 15 |
 | In-hosted scan (in-cluster half) | 13 | 21 | ~30 |
-| Correctly NOT-APPLICABLE (auto or SDN/arch) | 7 | 4 | 12 |
+| Correctly NOT-APPLICABLE (auto-suppressed, SDN-gated, or architectural) | 7 | 4 | 12 |
 | Manual attestation (attest vs hosted cluster) | 21 | 11 | 25 |
-| **No automated equivalent (SSP statement)** | **2** | **0** | **2** |
+| **No automated equivalent (record in the System Security Plan)** | **2** | **0** | **2** |
 | Node-dimension rules (in-hosted node profiles) | 103 | 121 | 123 |
 
 Bottom line: with all layers deployed, **every automated platform rule has exactly
@@ -55,6 +69,25 @@ STIG mgmt scan (only 6 aware rules); the in-hosted + CEL layers close most of it
 | CMP-4524 (Story) | Extend HyperShift awareness to the HostedCluster-derivable rules |
 
 Full per-rule detail: [`RULE_COVERAGE_MATRIX.md`](RULE_COVERAGE_MATRIX.md). Multi-cluster fleets: section 10.
+
+### Glossary (read this if any term above is unfamiliar)
+
+| Term | Meaning |
+|---|---|
+| Management cluster | The OpenShift cluster that runs hosted control planes as pods |
+| Hosted cluster | The tenant cluster: worker nodes + workloads, no control-plane pods |
+| CP / control-plane namespace | `<prefix>-<name>` namespace on the management cluster holding one hosted control plane |
+| CO | Compliance Operator - runs the scans, from either cluster |
+| MCE | multicluster engine operator - installs/manages HyperShift (`HostedCluster` API) |
+| TailoredProfile | CO object that customizes a profile: set variables, enable/disable rules |
+| ScanSettingBinding (SSB) | CO object that binds profiles to scan settings and starts scanning |
+| ComplianceCheckResult | Per-rule scan result object: PASS / FAIL / MANUAL / NOT-APPLICABLE |
+| CEL CustomRule | User-defined CO check written in Common Expression Language against live API objects |
+| HyperShift-aware (dual-path) rule | Content rule whose fetch path switches to the hosted CP namespace when the HyperShift variables are set |
+| Wrong-target rule | Rule that, in a management scan, reads the management cluster's own config and so reports on the wrong cluster |
+| CPE / platform | The content's applicability mechanism - decides which rules run on which cluster type |
+| SSP | System Security Plan - the accreditation document where non-automatable items are recorded |
+| Technology Preview | Red Hat support level: early access, not covered by production SLAs |
 
 ---
 
@@ -226,7 +259,7 @@ NodePool-delivered hardening workload as STIG).
 - [`HCP_SCAN_VALIDATION_REPORT.md`](docs-background/HCP_SCAN_VALIDATION_REPORT.md) — first validation run (CIS) and the etcd
   false-positive evidence
 
-The `hcp-demo` HostedCluster and all scan objects are left in place on
+The `hcp-demo` HostedCluster and all scan objects were available for inspection on
 `ci-ln-b6zqd5k-76ef8.aws-4.ci.openshift.org` for inspection.
 
 ---
@@ -262,15 +295,15 @@ initContainers. Until fixed, the tailored profiles replicate the CPE gating manu
 
 | Scan | Result | Notes |
 |---|---|---|
-| `ocp4-cis` (untailored) | 22P/21M/46F | demonstrates the CPE bug: ~38 false CP FAILs |
-| `hosted-cis-tailored` | 14P/21M/8F | CP rules absent; remaining FAILs genuine (kubeadmin present, registries unset, ingress ciphers default, netpol missing) |
-| `hosted-stig-tailored` | 14P/11M/19F | banner/MOTD/logout-url/project-template FAILs = real unhardened-cluster findings |
-| `hosted-high-tailored` | 28P/23M/24F | same pattern |
+| `ocp4-cis` (untailored) | 22 PASS / 21 MANUAL / 46 FAIL | demonstrates the CPE bug: ~38 false CP FAILs |
+| `hosted-cis-tailored` | 14 PASS / 21 MANUAL / 8 FAIL | CP rules absent; remaining FAILs genuine (kubeadmin present, registries unset, ingress ciphers default, netpol missing) |
+| `hosted-stig-tailored` | 14 PASS / 11 MANUAL / 19 FAIL | banner/MOTD/logout-url/project-template FAILs = real unhardened-cluster findings |
+| `hosted-high-tailored` | 28 PASS / 23 MANUAL / 24 FAIL | same pattern |
 | `ocp4-cis-node-worker` | 57 PASS — **COMPLIANT** | 4.20 workers pass CIS node checks out of the box |
-| `ocp4-stig-node-worker` | 2P/1F | kubelet STIG |
-| `rhcos4-stig-worker` | 17P/1M/98F | OS-level STIG on unhardened RHCOS — the node-hardening workload that NodePool config must address |
-| `ocp4-high-node-worker` | 61P/3M/1F | NIST High kubelet/node checks |
-| `rhcos4-high-worker` | 40P/4M/194F | NIST High OS baseline on unhardened RHCOS — same NodePool hardening backlog |
+| `ocp4-stig-node-worker` | 2 PASS / 1 FAIL | kubelet STIG |
+| `rhcos4-stig-worker` | 17 PASS / 1 MANUAL / 98 FAIL | OS-level STIG on unhardened RHCOS — the node-hardening workload that NodePool config must address |
+| `ocp4-high-node-worker` | 61 PASS / 3 MANUAL / 1 FAIL | NIST High kubelet/node checks |
+| `rhcos4-high-worker` | 40 PASS / 4 MANUAL / 194 FAIL | NIST High OS baseline on unhardened RHCOS — same NodePool hardening backlog |
 
 Gap-rule recovery verified rule-by-rule: every rule the coverage matrix assigns to
 "Hosted scan" produced a genuine in-hosted result — `kubeadmin-removed` FAIL (true:
@@ -290,8 +323,9 @@ platform rule of all three profiles.
   `AWS_REGION` exported for its STS AssumeRole call.
 - `ValidAWSIdentityProvider=False WebIdentityErr` shortly after creation is IAM OIDC
   eventual consistency; it resolved itself within ~5 minutes.
-- Both hosted clusters (`hcp-demo`, `hcp-aws`) are left running with all scan objects
-  for inspection.
+- Both hosted clusters (`hcp-demo`, `hcp-aws`) were kept running for post-scan
+  inspection and have since been torn down (validation complete; results preserved
+  in these docs).
 
 ## 9. Consolidated findings list (all validated live)
 
