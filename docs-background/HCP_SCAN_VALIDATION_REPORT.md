@@ -177,3 +177,14 @@ Full manifests used in this run are preserved in the session scratchpad
    `disableRules` list in `HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md`; the four rules above
    should be disabled in production tailored profiles.
 ```
+
+## 8. Follow-up status (added 2026-07-31, post-validation)
+
+- Section 7 item 1 (etcd content bug): filed as CMP-4520.
+- Additional findings from the extended validation (STIG/High/CEL scans, in-hosted
+  install on AWS HostedCluster hcp-aws): CMP-4521 (hosted CPE unreachable),
+  CMP-4522 (CSV master nodeSelector), CMP-4523 (collector nodepools RBAC),
+  CMP-4524 (extend HyperShift rule awareness).
+- The single-scan validation here grew into the full multi-layer package: see the
+  repo README (TL;DR + sections 8-10) and RULE_COVERAGE_MATRIX.md for per-rule
+  coverage from both scan locations.

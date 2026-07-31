@@ -1,5 +1,21 @@
 # Reaching STIG, CIS, and NIST 800-53 High Compliance for Self-Managed Hosted Control Planes
 
+> **Post-validation errata (2026-07-31).** All five layers proposed here were
+> subsequently validated live (see the repo README and RULE_COVERAGE_MATRIX.md).
+> Corrections against reality:
+>
+> 1. Layer A's premise that control-plane rules go NOT-APPLICABLE in-hosted via the
+>    `ocp4-on-hypershift-hosted` CPE does not hold today - the CPE is unreachable
+>    (CMP-4521); use in-hosted TailoredProfiles that disable the CP rules instead.
+> 2. The RBAC prediction in section 7.1 was confirmed exactly: `hostedclusters`
+>    readable via cluster-reader aggregation, `nodepools` forbidden (CMP-4523).
+> 3. Additional finding not anticipated here: the downstream CSV pins the operator
+>    to master nodes - OLM installs on hosted clusters need a Subscription
+>    nodeSelector override (CMP-4522).
+> 4. The section 7.2 CEL catalog was implemented and validated 14/14
+>    (`customrules.yaml`); the upstream work in section 9 is filed as CMP-4520 and
+>    CMP-4524.
+
 **Audience:** customers and support engineers who manage their own Hosted Control Planes
 (HyperShift) environment and need to satisfy DISA STIG, CIS OpenShift Benchmark, and
 NIST 800-53 High-impact baselines for their hosted clusters.

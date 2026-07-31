@@ -1,5 +1,23 @@
 # Scanning Hosted Control Planes (HyperShift) with the Compliance Operator
 
+> **Post-validation errata (2026-07-31).** This document describes the designed
+> mechanism. Live validation (CO v1.9.1, see the repo README and
+> HCP_SCAN_VALIDATION_REPORT.md) found two places where reality currently differs:
+>
+> 1. **The `ocp4-on-hypershift-hosted` CPE never fires** (CMP-4521): the operator
+>    passes `--platform=HyperShift` on an initContainer while the OVAL check reads
+>    `.spec.containers` only. Statements below about control-plane rules being
+>    "automatically NOT-APPLICABLE" inside hosted clusters describe the intent; in
+>    practice those rules false-FAIL until fixed - use the in-hosted tailored
+>    profiles (`tp-in-hosted.yaml`) as the workaround.
+> 2. **The six etcd dual-path rules false-FAIL on 4.21+ hosted control planes**
+>    (CMP-4520): hosted etcd moved from flags to `ETCD_*` env vars; the jqfilters
+>    only inspect args. CEL replacements ship in `customrules.yaml`.
+>
+> Also filed from validation: CMP-4522 (CSV master nodeSelector blocks OLM install
+> in hosted clusters), CMP-4523 (collector RBAC for nodepools), CMP-4524 (extend
+> HyperShift awareness to HostedCluster-derivable rules).
+
 **Audience:** customers and support engineers working with the Compliance Operator on
 self-managed Hosted Control Planes (HyperShift) management clusters.
 

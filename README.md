@@ -273,11 +273,11 @@ platform rule of all three profiles.
 
 ## 9. Consolidated findings list (all validated live)
 
-1. etcd rules false-positive on HCP 4.21+ (env-var config) — CEL replacement shipped here.
-2. `oauth_or_oauthclient_inactivity_timeout` and siblings not HyperShift-aware — CEL gap rules shipped here.
-3. Downstream CSV master `nodeSelector` blocks OLM install on hosted clusters — Subscription override required.
-4. `ocp4-on-hypershift-hosted` CPE unreachable (initContainer vs `.spec.containers` OVAL mismatch) — in-hosted tailored profiles required.
-5. `api-resource-collector` lacks RBAC for `nodepools` (has `hostedclusters` via cluster-reader aggregation) — `rbac-hypershift-read.yaml` required for the NodePool CEL rule.
+1. etcd rules false-positive on HCP 4.21+ (env-var config) — CEL replacement shipped here. Filed: CMP-4520.
+2. `oauth_or_oauthclient_inactivity_timeout` and siblings not HyperShift-aware — CEL gap rules shipped here. Filed: CMP-4524.
+3. Downstream CSV master `nodeSelector` blocks OLM install on hosted clusters — Subscription override required. Filed: CMP-4522.
+4. `ocp4-on-hypershift-hosted` CPE unreachable (initContainer vs `.spec.containers` OVAL mismatch) — in-hosted tailored profiles required. Filed: CMP-4521.
+5. `api-resource-collector` lacks RBAC for `nodepools` (has `hostedclusters` via cluster-reader aggregation) — `rbac-hypershift-read.yaml` required for the NodePool CEL rule. Filed: CMP-4523.
 
 
 ## 10. Scaling to multiple hosted clusters
