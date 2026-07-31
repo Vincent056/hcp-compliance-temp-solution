@@ -28,7 +28,7 @@ management-cluster tailored scan (TailoredProfile with the HyperShift variables)
 |---|---|
 | `CORRECT hosted-CP data (aware)` | The rule is HyperShift-aware: its fetch path is templated with the HyperShift variables, so it reads the hosted control plane's own objects (`kas-config`, etcd/KCM pods in `clusters-<name>`, the HostedCluster CR). The PASS/FAIL truthfully describes the hosted cluster. |
 | `auto N/A` | Rule carries `platform: not ocp4-on-hypershift`; the scan suppresses it automatically (NOT-APPLICABLE, no result object). Correct behavior — the rule cannot say anything meaningful about the hosted cluster from the management side. |
-| `disabled -> CEL <rule>` | Disabled in the validated TailoredProfile because the OpenSCAP rule mis-evaluates on HCP (etcd false positives, wrong-target reads); the named CEL CustomRule in `customrules.yaml` provides the authoritative replacement check. |
+| `disabled -> CEL <rule>` | Disabled in the validated TailoredProfile because the OpenSCAP rule mis-evaluates on HCP (etcd false positives CMP-4520, wrong-target reads); the named CEL CustomRule in `customrules.yaml` provides the authoritative replacement check. |
 | `disabled (wrong-target)` | Disabled in the validated TailoredProfile: the rule would read the MANAGEMENT cluster's resources and report about the wrong cluster. The authoritative answer must come from the in-hosted scan. |
 | `WRONG-TARGET (reads mgmt)` | NOT disabled in the validated profile (kept for demonstration): the result reflects the management cluster, not the hosted one. Disable in production tailored profiles, or read it as a management-cluster finding. |
 | `MANUAL` | OCIL-only rule with no automated check; always reports MANUAL. Perform the attestation against the hosted cluster. |
@@ -76,7 +76,11 @@ profile's selection.
 | `hosted-cis-tailored` (in hcp-aws) | in-cluster half | 14 PASS / 21 MANUAL / 8 FAIL |
 | `hosted-stig-tailored` (in hcp-aws) | in-cluster half | 14 PASS / 11 MANUAL / 19 FAIL |
 | `hosted-high-tailored` (in hcp-aws) | in-cluster half | 28 PASS / 23 MANUAL / 24 FAIL |
-| node scans (in hcp-aws) | worker nodes | see above |
+| `ocp4-cis-node-worker` (in hcp-aws) | worker nodes | 57 PASS — COMPLIANT |
+| `ocp4-stig-node-worker` (in hcp-aws) | worker nodes | 2 PASS / 1 FAIL |
+| `rhcos4-stig-worker` (in hcp-aws) | worker nodes (OS) | 17 PASS / 1 MANUAL / 98 FAIL |
+| `ocp4-high-node-worker` (in hcp-aws) | worker nodes | 61 PASS / 3 MANUAL / 1 FAIL |
+| `rhcos4-high-worker` (in hcp-aws) | worker nodes (OS) | 40 PASS / 4 MANUAL / 194 FAIL |
 
 Combined coverage: every automated platform rule of all three benchmarks now has
 exactly one authoritative source (Mgmt scan, Hosted scan, or CEL) except the two
@@ -382,3 +386,20 @@ Platform rules listed: 48
 | `secrets_no_environment_variables` | M | MANUAL | MANUAL | MANUAL | MANUAL | Manual |
 
 Platform rules listed: 134
+
+
+## 5. Node dimension summary (per-rule tables intentionally omitted)
+
+Node rules run only inside the hosted cluster (worker role — the HyperShift platform
+default; master-node rules are structurally N/A, hosted clusters have no masters).
+All five node scans were live-validated on hcp-aws (4.20.32, 2 workers):
+
+| Benchmark | Node profiles | Rules | Live result | Reading |
+|---|---|---|---|---|
+| CIS | `ocp4-cis-node` | ~103 | 57 PASS / 0 FAIL — **COMPLIANT** | 4.20 workers pass out of the box |
+| STIG | `ocp4-stig-node` + `rhcos4-stig` | 121 | 2P/1F and 17P/1M/98F | OS FAILs = NodePool-delivered hardening backlog (no MCO in hosted clusters) |
+| High | `ocp4-high-node` + `rhcos4-high` | 123 | 61P/3M/1F and 40P/4M/194F | same hardening backlog against the NIST High OS baseline |
+
+Node remediation transport (MachineConfigs via `NodePool.spec.config` on the
+management cluster) is described in the README and the analysis doc; this validation
+was scan-only.
