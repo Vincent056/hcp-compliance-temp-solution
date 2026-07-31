@@ -227,3 +227,68 @@ platform rule of all three profiles.
 3. Downstream CSV master `nodeSelector` blocks OLM install on hosted clusters — Subscription override required.
 4. `ocp4-on-hypershift-hosted` CPE unreachable (initContainer vs `.spec.containers` OVAL mismatch) — in-hosted tailored profiles required.
 5. `api-resource-collector` lacks RBAC for `nodepools` (has `hostedclusters` via cluster-reader aggregation) — `rbac-hypershift-read.yaml` required for the NodePool CEL rule.
+
+
+## 10. Scaling to multiple hosted clusters
+
+Everything in this package was validated against a single hosted cluster; with a fleet
+on one management cluster, each object falls into one of two categories:
+
+### 10.1 Per-hosted-cluster objects (instantiate N times)
+
+| Object | Why per-cluster | Naming convention |
+|---|---|---|
+| Mgmt TailoredProfiles (`tp-cis-with-disables`, `tp-stig`, `tp-high`) | The two variables (`ocp4-hypershift-cluster`, `ocp4-hypershift-namespace-prefix`) identify exactly ONE HostedCluster; a scan reads exactly one control-plane namespace | `hypershift-<profile>-<cluster>` (e.g. `hypershift-cis-payments-prod`) |
+| ScanSettingBindings for those TPs | One binding per TP | `hypershift-<profile>-<cluster>` |
+| The 6 etcd CEL CustomRules | The control-plane namespace (`clusters-<name>`) is baked into the expression (CustomRules have no variable substitution) | `hcp-etcd-<check>-<cluster>` |
+| In-hosted install + tailored profiles (`co-in-hosted.yaml`, `tp-in-hosted.yaml`, SSBs) | The Compliance Operator runs inside EACH hosted cluster | identical manifests per cluster |
+
+Generation is mechanical - every per-cluster manifest differs only in the cluster
+name/namespace strings. A 10-line loop over `oc get hostedcluster -A` output (sed on
+the name/prefix placeholders) produces the full set; keep the generated manifests in
+Git per cluster.
+
+### 10.2 Fleet-wide objects (one instance covers all hosted clusters)
+
+The 8 HostedCluster/NodePool CEL rules are fleet-wide BY DESIGN: they assert the
+condition over `.items.all(...)`, so ONE rule evaluates every hosted cluster and a
+newly onboarded violating cluster immediately fails the shared check.
+
+Two adjustments for fleets:
+
+- **Cover every namespace prefix.** The validated rules set
+  `resourceNamespace: clusters`; if your fleet uses multiple HostedCluster namespaces,
+  REMOVE `resourceNamespace` from the input - an empty namespace fetches the resource
+  across all namespaces.
+- **Fleet vs per-cluster verdicts.** A fleet rule yields ONE result: FAIL means "at
+  least one cluster violates" (the offender is not named in the status). If auditors
+  need per-cluster verdicts, generate per-cluster copies instead: set
+  `resourceNamespace: <prefix>` + `resourceName: <cluster>` on the input and adjust
+  the expression from `.items.all(hc, ...)` to the single-object form, naming each
+  rule `hcp-<check>-<cluster>`. Both shapes can coexist (fleet rule as the gate,
+  per-cluster rules for reporting).
+
+Also fleet-wide as-is: `rbac-hypershift-read.yaml` (one grant) and the management
+cluster's own self-scans (Layer D).
+
+### 10.3 Distribution and operations at fleet scale
+
+- **In-hosted layer via ACM/MCE policies or GitOps.** MCE auto-imports every hosted
+  cluster as a managed cluster; an ACM Policy (or Argo ApplicationSet keyed on the
+  hosted-cluster kubeconfig secrets) can push the identical in-hosted bundle
+  (Subscription with the worker nodeSelector + PLATFORM env, tailored profiles, SSBs)
+  to all hosted clusters and keep it converged as new clusters onboard - avoiding
+  N manual installs.
+- **Stagger schedules.** N hosted clusters mean N mgmt tailored suites on the
+  management cluster; with the shared `default` ScanSetting they all fire at the same
+  cron time. Create a few ScanSettings with offset schedules (e.g. one per hour
+  bucket) and spread the bindings, so the api-resource-collector load and etcd reads
+  on the management cluster do not spike at once.
+- **Result slicing.** Scan names embed the cluster name, and every
+  ComplianceCheckResult carries the `compliance.openshift.io/scan-name` label -
+  `oc get ccr -l compliance.openshift.io/scan-name=hypershift-cis-<cluster>` gives a
+  per-cluster report; ACM's governance view aggregates across the fleet.
+- **Onboarding checklist for a new hosted cluster:** generate + apply the per-cluster
+  mgmt TPs/SSBs and etcd CEL rules; let the policy/GitOps engine roll out the
+  in-hosted bundle; confirm the fleet CEL rules pick it up (they do automatically);
+  add its scans to the schedule bucket with the most headroom.
