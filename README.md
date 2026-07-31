@@ -6,6 +6,53 @@ Environment: OCP 4.21.0 nightly management cluster (AWS), Compliance Operator **
 left running for further testing). Scan-only: no remediations were applied
 (`default` ScanSetting, auto-apply off).
 
+## TL;DR
+
+Customers running self-managed Hosted Control Planes can reach near-complete
+automated coverage of CIS, STIG, and NIST 800-53 High **today, with no content
+changes**, by combining four scan layers (all validated live in this repo):
+
+1. **Mgmt tailored scans** - TailoredProfiles with the two HyperShift variables
+   (one set per hosted cluster) cover the hosted control-plane configuration.
+2. **CEL CustomRules on the mgmt cluster** - replace the 6 etcd false-positive rules
+   and check the settings whose source of truth is `HostedCluster.spec`
+   (FIPS, etcd encryption, audit profile, TLS profile, OAuth token policy, webhook).
+3. **In-hosted scans** - CO installed inside each hosted cluster (Subscription needs
+   worker `nodeSelector` + `PLATFORM=HyperShift` env) with tailored profiles that
+   disable the control-plane rules; covers all in-cluster checks and node profiles.
+4. **Mgmt self-scans + manual attestations** complete the picture.
+
+### Coverage / gap metrics (platform profiles, live-validated)
+
+| | CIS (94 rules) | STIG (48 rules) | High (134 rules) |
+|---|---|---|---|
+| Mgmt scan, HyperShift-aware (truthful hosted-CP results) | 47 | 6 | 57 |
+| CEL CustomRules (replacements + gap rules) | 10 | 6 | 15 |
+| In-hosted scan (in-cluster half) | 13 | 21 | ~30 |
+| Correctly NOT-APPLICABLE (auto or SDN/arch) | 7 | 4 | 12 |
+| Manual attestation (attest vs hosted cluster) | 21 | 11 | 25 |
+| **No automated equivalent (SSP statement)** | **2** | **0** | **2** |
+| Node-dimension rules (in-hosted node profiles) | 103 | 121 | 123 |
+
+Bottom line: with all layers deployed, **every automated platform rule has exactly
+one authoritative source except the two `no-unsupported-config-overrides` rules**
+(architecturally N/A on HCP - record in the SSP). The weakest single layer is the
+STIG mgmt scan (only 6 aware rules); the in-hosted + CEL layers close most of it.
+
+### Findings discovered and filed during validation
+
+| Jira | Finding |
+|---|---|
+| CMP-4520 (Bug, Major) | 6 etcd rules false-FAIL on HCP - etcd config moved to `ETCD_*` env vars |
+| CMP-4521 (Bug, Critical) | `ocp4-on-hypershift-hosted` CPE never fires (initContainer vs `.spec.containers` OVAL mismatch) - CP rules false-FAIL inside every hosted cluster |
+| CMP-4522 (Bug, Major) | CSV master `nodeSelector` makes the operator unschedulable on hosted clusters |
+| CMP-4523 (Story) | Collector SA lacks `nodepools` RBAC for CEL inputs |
+| CMP-4524 (Story) | Extend HyperShift awareness to the HostedCluster-derivable rules |
+
+Full per-rule detail: `RULE_COVERAGE_MATRIX.md`. Multi-cluster fleets: section 10.
+
+---
+
 This package delivers the best currently-achievable automated coverage of the CIS,
 DISA STIG, and NIST 800-53 High benchmarks for a hosted cluster **without any
 ComplianceAsCode content changes**, using only supported Compliance Operator
