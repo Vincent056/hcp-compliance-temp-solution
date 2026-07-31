@@ -21,8 +21,9 @@ merged with LIVE results from BOTH validated scan locations on cluster
 - **Mgmt tailored scans** — TailoredProfiles with HyperShift variables against
   HostedCluster `hcp-demo` (none-platform, CP-only) from the management cluster.
 - **In-hosted tailored scans** — CO installed inside AWS HostedCluster `hcp-aws`
-  (4.20.32, 2 workers) via OLM, per the documented HyperShift install procedure
-  (Subscription with worker `nodeSelector` + `PLATFORM=HyperShift` env; Technology
+  (4.20.32, 2 workers) via OLM, per the documented install procedure
+  ([Installing the Compliance Operator on Hypershift hosted control planes](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#installing-compliance-operator-hcp_compliance-operator-installation);
+  Subscription with worker `nodeSelector` + `PLATFORM=HyperShift` env; Technology
   Preview — the CSV pins to masters which do not exist in hosted clusters). Control-plane rules
   are disabled by TailoredProfile because the `ocp4-on-hypershift-hosted` CPE never
   fires (operator passes `--platform=HyperShift` on an initContainer; the OVAL check

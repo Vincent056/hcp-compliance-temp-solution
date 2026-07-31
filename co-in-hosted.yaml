@@ -1,3 +1,5 @@
+# Official install procedure (Technology Preview):
+# https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#installing-compliance-operator-hcp_compliance-operator-installation
 apiVersion: v1
 kind: Namespace
 metadata:

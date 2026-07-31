@@ -24,7 +24,7 @@ see errata). For current live numbers use the Solution README and the matrix.
 >    readable via cluster-reader aggregation, `nodepools` forbidden (CMP-4523).
 > 3. The downstream CSV pins the operator to master nodes; the required Subscription
 >    override (worker nodeSelector + PLATFORM env) turned out to be the officially
->    documented HyperShift install procedure (Technology Preview) - CMP-4522 filed
+>    [documented HyperShift install procedure](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#installing-compliance-operator-hcp_compliance-operator-installation) (Technology Preview) - CMP-4522 filed
 >    before finding the docs, to be closed or rescoped.
 > 4. The section 7.2 CEL catalog was implemented and validated 14/14
 >    (`customrules.yaml`); the upstream work in section 9 is filed as CMP-4520 and

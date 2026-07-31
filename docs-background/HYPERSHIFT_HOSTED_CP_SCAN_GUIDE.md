@@ -27,7 +27,7 @@ see the Solution README for the validated end-to-end package.
 >    only inspect args. CEL replacements ship in `customrules.yaml`.
 >
 > Also filed from validation: CMP-4522 (CSV master nodeSelector — the Subscription
-> override is in fact the documented install procedure, ticket to be closed or
+> override is in fact the [documented install procedure](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#installing-compliance-operator-hcp_compliance-operator-installation), ticket to be closed or
 > rescoped), CMP-4523 (collector RBAC for nodepools), CMP-4524 (extend HyperShift
 > awareness to HostedCluster-derivable rules).
 
@@ -95,8 +95,10 @@ For full coverage of a hosted cluster you need two scans:
    configuration) by reading the pods/configmaps in the `<prefix>-<name>` namespace.
 
 2. **Hosted-cluster scan (optional but recommended).** The Compliance Operator installed
-   *inside* the hosted cluster (built/deployed with `PLATFORM=hypershift`, which passes
-   `--platform=HyperShift` to the operator). There, all in-cluster rules (RBAC, SCC,
+   *inside* the hosted cluster — via OLM per the official procedure
+   ([Installing the Compliance Operator on Hypershift hosted control planes](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#installing-compliance-operator-hcp_compliance-operator-installation),
+   Technology Preview: worker `nodeSelector` + `PLATFORM=HyperShift` Subscription
+   config) or built/deployed with `PLATFORM=hypershift`. There, all in-cluster rules (RBAC, SCC,
    registries, namespaces, ...) evaluate correctly, and the control-plane rules are
    automatically marked NOT-APPLICABLE because the control plane is not present.
 
