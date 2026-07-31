@@ -150,7 +150,8 @@ Notes:
   `stig-v2r3.profile` includes `version_detect_in_hypershift`, so setting the two
   variables flips the `ocp4-on-hypershift` CPE, the 4 auto-N/A rules suppress
   correctly, and the 6 aware rules read the HostedCluster. It is simply not in the
-  supported-profiles list. Decision for the customer: run it with the wrong-target
+  supported-profiles list (see [Configuring the hosted control planes management cluster](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#co-hcp-mgmt-config_compliance-operator-scans)).
+  Decision for the customer: run it with the wrong-target
   rules disabled and document the support caveat, or skip Layer C for STIG and rely on
   Layers A + E entirely.
 - STIG's node/OS dimension (121 of 169 rules) is the bulk of the benchmark and is
@@ -497,7 +498,9 @@ any other scan and are aggregated into the same reporting pipeline.
 ## 8. Residual gaps (honest list — nothing below is closed by the five layers)
 
 1. **Support statement.** STIG and High management tailored scans work mechanically but
-   are not in the supported-profiles list. Until the docs change, findings from Layer C
+   are not in the supported-profiles list
+   ([Configuring the hosted control planes management cluster](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#co-hcp-mgmt-config_compliance-operator-scans)).
+   Until the docs change, findings from Layer C
    for those two profiles are self-supported evidence. Mitigation: file the RFE
    (section 9) and keep the CIS tailored scan (supported) as the anchor.
 2. **Hosted CP file-level checks.** Master-node STIG/High rules (etcd data

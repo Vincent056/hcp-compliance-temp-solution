@@ -18,7 +18,7 @@ Generated 2026-07-31 from ComplianceAsCode content (CIS v1.9.0, STIG v2r3, NIST 
 merged with LIVE results from BOTH validated scan locations on cluster
 `ci-ln-b6zqd5k-76ef8` (CO v1.9.1 in both places):
 
-- **Mgmt tailored scans** — TailoredProfiles with HyperShift variables against
+- **Mgmt tailored scans** (official procedure: [Configuring the hosted control planes management cluster](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#co-hcp-mgmt-config_compliance-operator-scans)) — TailoredProfiles with HyperShift variables against
   HostedCluster `hcp-demo` (none-platform, CP-only) from the management cluster.
 - **In-hosted tailored scans** — CO installed inside AWS HostedCluster `hcp-aws`
   (4.20.32, 2 workers) via OLM, per the documented install procedure

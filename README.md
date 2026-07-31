@@ -15,7 +15,9 @@ automated coverage of CIS, STIG, and NIST 800-53 High **today, with no content
 changes**, by combining four scan layers (all validated live in this repo):
 
 1. **Mgmt tailored scans** - TailoredProfiles with the two HyperShift variables
-   (one set per hosted cluster) cover the hosted control-plane configuration.
+   (one set per hosted cluster, per the official procedure:
+   [Configuring the hosted control planes management cluster](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#co-hcp-mgmt-config_compliance-operator-scans))
+   cover the hosted control-plane configuration.
 2. **CEL CustomRules on the mgmt cluster** - replace the 6 etcd false-positive rules
    and check the settings whose source of truth is `HostedCluster.spec`
    (FIPS, etcd encryption, audit profile, TLS profile, OAuth token policy, webhook).

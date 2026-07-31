@@ -89,7 +89,9 @@ cause of everything in section 4.
 
 For full coverage of a hosted cluster you need two scans:
 
-1. **Management-cluster scan (this document).** A `TailoredProfile` extending `ocp4-cis`
+1. **Management-cluster scan (this document; official procedure:
+   [Configuring the hosted control planes management cluster](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#co-hcp-mgmt-config_compliance-operator-scans)).**
+   A `TailoredProfile` extending `ocp4-cis`
    or `ocp4-pci-dss` with the two HyperShift variables set. It covers the hosted
    *control plane* (kube-apiserver, etcd, controller-manager, openshift-apiserver
    configuration) by reading the pods/configmaps in the `<prefix>-<name>` namespace.
@@ -102,7 +104,8 @@ For full coverage of a hosted cluster you need two scans:
    registries, namespaces, ...) evaluate correctly, and the control-plane rules are
    automatically marked NOT-APPLICABLE because the control plane is not present.
 
-Only `ocp4-cis` and `ocp4-pci-dss` (platform profiles) are supported for the
+Per the official support statement in [Configuring the hosted control planes management cluster](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#co-hcp-mgmt-config_compliance-operator-scans),
+only `ocp4-cis` and `ocp4-pci-dss` (platform profiles) are supported for the
 management-cluster scan. Node profiles (`ocp4-cis-node`, `ocp4-pci-dss-node`) run against
 node filesystems and cannot target another cluster's nodes from the management cluster.
 
