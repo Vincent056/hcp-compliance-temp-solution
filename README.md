@@ -19,8 +19,9 @@ changes**, by combining four scan layers (all validated live in this repo):
 2. **CEL CustomRules on the mgmt cluster** - replace the 6 etcd false-positive rules
    and check the settings whose source of truth is `HostedCluster.spec`
    (FIPS, etcd encryption, audit profile, TLS profile, OAuth token policy, webhook).
-3. **In-hosted scans** - CO installed inside each hosted cluster (Subscription needs
-   worker `nodeSelector` + `PLATFORM=HyperShift` env) with tailored profiles that
+3. **In-hosted scans** - CO installed inside each hosted cluster following the
+   documented HyperShift install procedure (Subscription with worker `nodeSelector` +
+   `PLATFORM=HyperShift` env; Technology Preview) with tailored profiles that
    disable the control-plane rules; covers all in-cluster checks and node profiles.
 4. **Mgmt self-scans + manual attestations** complete the picture.
 
@@ -47,7 +48,7 @@ STIG mgmt scan (only 6 aware rules); the in-hosted + CEL layers close most of it
 |---|---|
 | CMP-4520 (Bug, Major) | 6 etcd rules false-FAIL on HCP - etcd config moved to `ETCD_*` env vars |
 | CMP-4521 (Bug, Critical) | `ocp4-on-hypershift-hosted` CPE never fires (initContainer vs `.spec.containers` OVAL mismatch) - CP rules false-FAIL inside every hosted cluster |
-| CMP-4522 (Bug, Major) | CSV master `nodeSelector` makes the operator unschedulable on hosted clusters |
+| CMP-4522 (Bug, Major) | CSV master `nodeSelector` blocks scheduling on hosted clusters — the Subscription override is ALREADY the documented install procedure (official docs 'Installing the Compliance Operator on Hypershift hosted control planes', Technology Preview); ticket to be closed/rescoped |
 | CMP-4523 (Story) | Collector SA lacks `nodepools` RBAC for CEL inputs |
 | CMP-4524 (Story) | Extend HyperShift awareness to the HostedCluster-derivable rules |
 
@@ -238,7 +239,7 @@ New manifests in this directory:
 
 | File | Purpose |
 |---|---|
-| `co-in-hosted.yaml` | OLM install of CO v1.9.1 inside the hosted cluster. REQUIRED deviations from a standard install: `spec.config.env` `PLATFORM=HyperShift` AND `spec.config.nodeSelector: {node-role.kubernetes.io/worker: ""}` — the CSV pins the operator to master nodes, which do not exist in hosted clusters (pod stays Pending forever without the override). |
+| `co-in-hosted.yaml` | OLM install of CO v1.9.1 inside the hosted cluster, matching the OFFICIAL documented procedure ('Installing the Compliance Operator on Hypershift hosted control planes', Technology Preview): `spec.config.env` `PLATFORM=HyperShift` + `spec.config.nodeSelector: {node-role.kubernetes.io/worker: ""}`. Without the overrides the operator pod stays Pending (CSV pins to masters; hosted clusters have none) — our validation independently confirmed the documented settings are load-bearing. |
 | `tp-in-hosted.yaml` | `hosted-cis-tailored` / `hosted-stig-tailored` / `hosted-high-tailored` — disable the control-plane rules (46 / 4 / 54) inside the hosted cluster |
 | `ssb-in-hosted.yaml`, `ssb-in-hosted-tailored.yaml` | node-profile bindings and tailored platform bindings |
 
@@ -294,7 +295,7 @@ platform rule of all three profiles.
 
 1. etcd rules false-positive on HCP 4.21+ (env-var config) — CEL replacement shipped here. Filed: CMP-4520.
 2. `oauth_or_oauthclient_inactivity_timeout` and siblings not HyperShift-aware — CEL gap rules shipped here. Filed: CMP-4524.
-3. Downstream CSV master `nodeSelector` blocks OLM install on hosted clusters — Subscription override required. Filed: CMP-4522.
+3. Downstream CSV master `nodeSelector` blocks OLM install on hosted clusters — the Subscription override (worker nodeSelector + PLATFORM env) is the officially documented install procedure (Technology Preview); validated live. CMP-4522 filed before finding the docs — to be closed or rescoped to 'tolerate masterless topologies natively'.
 4. `ocp4-on-hypershift-hosted` CPE unreachable (initContainer vs `.spec.containers` OVAL mismatch) — in-hosted tailored profiles required. Filed: CMP-4521.
 5. `api-resource-collector` lacks RBAC for `nodepools` (has `hostedclusters` via cluster-reader aggregation) — `rbac-hypershift-read.yaml` required for the NodePool CEL rule. Filed: CMP-4523.
 

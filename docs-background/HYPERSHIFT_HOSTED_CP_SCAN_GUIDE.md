@@ -26,9 +26,10 @@ see the Solution README for the validated end-to-end package.
 >    (CMP-4520): hosted etcd moved from flags to `ETCD_*` env vars; the jqfilters
 >    only inspect args. CEL replacements ship in `customrules.yaml`.
 >
-> Also filed from validation: CMP-4522 (CSV master nodeSelector blocks OLM install
-> in hosted clusters), CMP-4523 (collector RBAC for nodepools), CMP-4524 (extend
-> HyperShift awareness to HostedCluster-derivable rules).
+> Also filed from validation: CMP-4522 (CSV master nodeSelector — the Subscription
+> override is in fact the documented install procedure, ticket to be closed or
+> rescoped), CMP-4523 (collector RBAC for nodepools), CMP-4524 (extend HyperShift
+> awareness to HostedCluster-derivable rules).
 
 **Audience:** customers and support engineers working with the Compliance Operator on
 self-managed Hosted Control Planes (HyperShift) management clusters.
