@@ -36,7 +36,9 @@ changes**, by combining four scan layers (all validated live in this repo):
    and check the settings whose source of truth is `HostedCluster.spec`
    (FIPS, etcd encryption, audit profile, TLS profile, OAuth token policy, webhook).
 3. **In-hosted scans** - CO installed inside each hosted cluster following the
-   documented install procedure ([Installing the Compliance Operator on Hypershift hosted control planes](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#installing-compliance-operator-hcp_compliance-operator-installation),
+   documented install procedure (note: official in-hosted support currently covers
+   node profiles; the platform-profile scans in this layer are enabled by this
+   package's tailored profiles) ([Installing the Compliance Operator on Hypershift hosted control planes](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#installing-compliance-operator-hcp_compliance-operator-installation),
    Technology Preview: Subscription with worker `nodeSelector` + `PLATFORM=HyperShift` env) with tailored profiles that
    disable the control-plane rules; covers all in-cluster checks and node profiles.
 4. **Mgmt self-scans + manual attestations** complete the picture.
@@ -63,7 +65,7 @@ STIG mgmt scan (only 6 aware rules); the in-hosted + CEL layers close most of it
 | Jira | Finding |
 |---|---|
 | CMP-4520 (Bug, Major) | 6 etcd rules false-FAIL on HCP - etcd config moved to `ETCD_*` env vars |
-| CMP-4521 (Bug, Critical) | `ocp4-on-hypershift-hosted` CPE never fires (initContainer vs `.spec.containers` OVAL mismatch) - CP rules false-FAIL inside every hosted cluster |
+| CMP-4521 (Bug, Critical) | `ocp4-on-hypershift-hosted` CPE never fires (initContainer vs `.spec.containers` OVAL mismatch), so control-plane rules false-FAIL if platform profiles are run inside a hosted cluster. Current official in-hosted support covers node profiles only, so no supported flow hits this — but this package's in-hosted tailored profiles (`tp-in-hosted.yaml`) work around it and make in-hosted platform scans usable. |
 | CMP-4522 (Bug, Major) | CSV master `nodeSelector` blocks scheduling on hosted clusters — the Subscription override is ALREADY the documented install procedure ([Installing the Compliance Operator on Hypershift hosted control planes](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#installing-compliance-operator-hcp_compliance-operator-installation), Technology Preview); ticket to be closed/rescoped |
 | CMP-4523 (Story) | Collector SA lacks `nodepools` RBAC for CEL inputs |
 | CMP-4524 (Story) | Extend HyperShift awareness to the HostedCluster-derivable rules |
@@ -333,7 +335,7 @@ platform rule of all three profiles.
 1. etcd rules false-positive on HCP 4.21+ (env-var config) — CEL replacement shipped here. Filed: CMP-4520.
 2. `oauth_or_oauthclient_inactivity_timeout` and siblings not HyperShift-aware — CEL gap rules shipped here. Filed: CMP-4524.
 3. Downstream CSV master `nodeSelector` blocks OLM install on hosted clusters — the Subscription override (worker nodeSelector + PLATFORM env) is the officially documented install procedure ([Installing the Compliance Operator on Hypershift hosted control planes](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#installing-compliance-operator-hcp_compliance-operator-installation), Technology Preview); validated live. CMP-4522 filed before finding the docs — to be closed or rescoped to 'tolerate masterless topologies natively'.
-4. `ocp4-on-hypershift-hosted` CPE unreachable (initContainer vs `.spec.containers` OVAL mismatch) — in-hosted tailored profiles required. Filed: CMP-4521.
+4. `ocp4-on-hypershift-hosted` CPE unreachable (initContainer vs `.spec.containers` OVAL mismatch) — affects platform profiles run in-hosted, which is beyond the current node-profiles-only support scope; this package's in-hosted tailored profiles are the workaround that makes those scans usable. Filed: CMP-4521.
 5. `api-resource-collector` lacks RBAC for `nodepools` (has `hostedclusters` via cluster-reader aggregation) — `rbac-hypershift-read.yaml` required for the NodePool CEL rule. Filed: CMP-4523.
 
 
