@@ -65,7 +65,7 @@ STIG mgmt scan (only 6 aware rules); the in-hosted + CEL layers close most of it
 | Jira | Finding |
 |---|---|
 | CMP-4520 (Bug, Major) | 6 etcd rules false-FAIL on HCP - etcd config moved to `ETCD_*` env vars |
-| CMP-4521 (Bug, Critical) | `ocp4-on-hypershift-hosted` CPE never fires (initContainer vs `.spec.containers` OVAL mismatch), so control-plane rules false-FAIL if platform profiles are run inside a hosted cluster. Current official in-hosted support covers node profiles only, so no supported flow hits this — but this package's in-hosted tailored profiles (`tp-in-hosted.yaml`) work around it and make in-hosted platform scans usable. |
+| CMP-4521 (Bug, Major) | `ocp4-on-hypershift-hosted` CPE never fires (initContainer vs `.spec.containers` OVAL mismatch), so control-plane rules false-FAIL if platform profiles are run inside a hosted cluster. Current official in-hosted support covers node profiles only, so no supported flow hits this — but this package's in-hosted tailored profiles (`tp-in-hosted.yaml`) work around it and make in-hosted platform scans usable. |
 | CMP-4522 (Bug, Major) | CSV master `nodeSelector` blocks scheduling on hosted clusters — the Subscription override is ALREADY the documented install procedure ([Installing the Compliance Operator on Hypershift hosted control planes](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#installing-compliance-operator-hcp_compliance-operator-installation), Technology Preview); ticket to be closed/rescoped |
 | CMP-4523 (Story) | Collector SA lacks `nodepools` RBAC for CEL inputs |
 | CMP-4524 (Story) | Extend HyperShift awareness to the HostedCluster-derivable rules |
