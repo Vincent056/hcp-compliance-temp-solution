@@ -17,7 +17,7 @@ Column key: A/M = automated/manual. `-` in a live column = no result (rule disab
 NOT-APPLICABLE, or not selected in that scan). Node-platform rules are excluded from
 the tables; they run via node profiles inside the hosted cluster — live validated:
 `ocp4-cis-node-worker` 57 PASS (COMPLIANT), `ocp4-stig-node-worker` 2 PASS / 1 FAIL,
-`rhcos4-stig-worker` 17 PASS / 98 FAIL / 1 MANUAL (unhardened RHCOS, expected).
+`rhcos4-stig-worker` 17 PASS / 98 FAIL / 1 MANUAL, `ocp4-high-node-worker` 61 PASS / 3 MANUAL / 1 FAIL, `rhcos4-high-worker` 40 PASS / 4 MANUAL / 194 FAIL (unhardened RHCOS, expected).
 
 ## Column value legend
 

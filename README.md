@@ -121,12 +121,18 @@ or the in-hosted tailored scan (all three validated live - sections 1 and 8).
 | Covered — in-hosted tailored scan (validated on hcp-aws, section 8) | 13 | `api-server-anonymous-auth`, `api-server-oauth/openshift-https-serving-cert`, `api-server/scheduler-profiling-protected-by-rbac` (x3), `rbac-debug-role-protects-pprof`, `scc-limit-container-allowed-capabilities`, `ingress-controller-tls-cipher-suites`, `ocp-*registries*` (x4) |
 | **Gap — no automated equivalent anywhere** | 2 | `api-server-(kube-)no-unsupported-config-overrides`: the operator CRs do not exist for hosted CPs. Compensating statement: HCP does not expose unsupportedConfigOverrides to tenants at all. |
 | Manual attestation (unchanged by HCP) | 21 | rbac_*, scc_* judgment rules, secrets management, namespace hygiene — perform against the hosted cluster |
-| Out of scope of the platform profile | ~103 node rules | `ocp4-cis-node` + `rhcos4-*` inside the hosted cluster (needs workers; this demo cluster has none) |
 
 Net (combined): **64 of 66 automatable platform rules (97%) produce truthful
 hosted-cluster results — 41 mgmt-aware + 6 etcd-CEL + 4 wrong-target-CEL + 13
 in-hosted. The only hard gap is the 2 `no-unsupported-config-overrides` rules
 (architectural SSP statement). Management side alone covers 51 of 66 (77%).**
+
+**Node dimension — `ocp4-cis-node` (~103 rules):** runs inside the hosted cluster via
+the worker-role node scans (the HyperShift platform default). Master-node rules are
+structurally out of scope (hosted clusters have no masters; the control-plane
+file-level story is covered by the compensating controls in the analysis doc).
+Live result on hcp-aws 4.20.32 workers: `ocp4-cis-node-worker` **57 PASS / 0 FAIL —
+COMPLIANT out of the box**.
 
 ### 2.2 STIG (ocp4-stig platform profile: 48 rules; full benchmark 169)
 
@@ -138,12 +144,17 @@ in-hosted. The only hard gap is the 2 `no-unsupported-config-overrides` rules
 | Covered — in-hosted tailored scan (validated, section 8) | 18 | `classification-banner`, `openshift-motd-exists`, `oauth-logout-url-set`, `ocp-*registries*` (x4), `image-pruner-active`, `imagestream-sets-schedule`, `project-config-and-template-network-policy`/`-resource-quota`, `resource-requests-quota-per-project`, `routes-rate-limit`, `ingress-controller-tls-security-profile`, `cluster-logging-operator-exist`, `cluster-version-operator-exists`/`-verify-integrity`, `container-security-operator-exists` |
 | Covered — other layers | 3 | `audit-error-alert-exists` (mgmt self-scan, Layer D), `scansettingbinding-exists` + `scansettings-have-schedule` (satisfied by the validated in-hosted CO install) |
 | Manual attestation | 11 | rbac_logging_* / rbac_least_privilege / scc_limit_* |
-| Node/OS dimension | 121 | `ocp4-stig-node` + `rhcos4-stig` inside the hosted cluster |
 
 Net (combined): **all 33 automatable platform rules (100%) covered — 6 mgmt-aware +
 6 CEL + 18 in-hosted + 3 via other layers.** Management side alone covers only
 12 of 33 (36%) because just 6 rules were ever made HyperShift-aware — the in-hosted
 and CEL layers are what make STIG whole.
+
+**Node/OS dimension — `ocp4-stig-node` + `rhcos4-stig` (121 rules):** live results:
+`ocp4-stig-node-worker` 2 PASS / 1 FAIL; `rhcos4-stig-worker` 17 PASS / 1 MANUAL /
+98 FAIL. The OS-level FAILs are the node-hardening backlog — remediations must be
+delivered through `NodePool.spec.config` MachineConfigs on the management cluster,
+since hosted clusters run no MCO (scan-only in this validation).
 
 ### 2.3 NIST 800-53 High (ocp4-high platform profile: 134 rules; full 257)
 
@@ -155,12 +166,16 @@ and CEL layers are what make STIG whole.
 | Covered — in-hosted tailored scan (validated, section 8) | ~30 | the CIS-13 plus: `banner-or-login-template-set`, `default-ingress-ca-replaced`, `ingress-controller-certificate`/`-tls-security-profile`, `resource-requests-limits-in-daemonset/deployment/statefulset`, `resource-requests-quota`, `route-ip-whitelist`, `routes-protected-by-tls`, `routes-rate-limit`, `api-server-api-priority-flowschema-catch-all`, `gitops-operator-exists`, `cluster-logging-operator-exist`, `cluster-version-operator-exists`/`-verify-integrity`, `compliance-notification-enabled`, `scansettingbinding-exists` |
 | Gap/other layers | 4 | `no-unsupported-config-overrides` x2 (architectural, as CIS); `audit-error-alert-exists` (mgmt); `cluster-wide-proxy-set` (CEL rule available in `docs-background/HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md` section 7.2(h), not deployed here — no proxy in this environment) |
 | Manual attestation | 25 | superset of CIS manual rules |
-| Node dimension | 123 | in-hosted node profiles |
 
 Net (combined): **~98 of 100 automatable platform rules (98%) covered — 51
 mgmt-aware + 15 CEL + ~30 in-hosted + 2 via other layers; the 2
 `no-unsupported-config-overrides` rules remain SSP statements.** Management side
 alone covers 72 of 100 (72%).
+
+**Node dimension — `ocp4-high-node` + `rhcos4-high` (123 rules):** live results:
+`ocp4-high-node-worker` 61 PASS / 3 MANUAL / 1 FAIL; `rhcos4-high-worker` 40 PASS /
+4 MANUAL / 194 FAIL (unhardened RHCOS against the NIST High OS baseline — the same
+NodePool-delivered hardening workload as STIG).
 
 ### 2.4 How the layers divide the work (all validated)
 
@@ -249,6 +264,8 @@ initContainers. Until fixed, the tailored profiles replicate the CPE gating manu
 | `ocp4-cis-node-worker` | 57 PASS — **COMPLIANT** | 4.20 workers pass CIS node checks out of the box |
 | `ocp4-stig-node-worker` | 2P/1F | kubelet STIG |
 | `rhcos4-stig-worker` | 17P/1M/98F | OS-level STIG on unhardened RHCOS — the node-hardening workload that NodePool config must address |
+| `ocp4-high-node-worker` | 61P/3M/1F | NIST High kubelet/node checks |
+| `rhcos4-high-worker` | 40P/4M/194F | NIST High OS baseline on unhardened RHCOS — same NodePool hardening backlog |
 
 Gap-rule recovery verified rule-by-rule: every rule the coverage matrix assigns to
 "Hosted scan" produced a genuine in-hosted result — `kubeadmin-removed` FAIL (true:
