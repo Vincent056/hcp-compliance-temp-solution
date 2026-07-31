@@ -287,9 +287,10 @@ the hardening bundle" into a continuously-scanned platform check.
 - Bound via a TailoredProfile with `enableRules[{kind: CustomRule, name, rationale}]`;
   keep CustomRules in their own TailoredProfile (a scan is either CEL or OpenSCAP,
   never mixed) and bind it with a normal ScanSettingBinding.
-- If an input's API type is not served, the result is NOT-APPLICABLE rather than an
-  error (CMP-4483) — CustomRule TailoredProfiles are therefore safe to ship across
-  heterogeneous fleets.
+- If an input's API type is not served, the result is designed to be NOT-APPLICABLE
+  rather than an error (CMP-4483 — an in-development change; verify on your operator
+  version). Note the adjacent case observed on v1.9.1: an input the collector lacks
+  RBAC for returns ERROR, not NOT-APPLICABLE.
 - RBAC: the CEL scanner fetches inputs live from the API server using the
   `api-resource-collector` ServiceAccount in the scan namespace. Reading HyperShift
   resources needs one extra grant on the management cluster:

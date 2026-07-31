@@ -101,8 +101,9 @@ For full coverage of a hosted cluster you need two scans:
    ([Installing the Compliance Operator on Hypershift hosted control planes](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#installing-compliance-operator-hcp_compliance-operator-installation),
    Technology Preview: worker `nodeSelector` + `PLATFORM=HyperShift` Subscription
    config) or built/deployed with `PLATFORM=hypershift`. There, all in-cluster rules (RBAC, SCC,
-   registries, namespaces, ...) evaluate correctly, and the control-plane rules are
-   automatically marked NOT-APPLICABLE because the control plane is not present.
+   registries, namespaces, ...) evaluate correctly. Control-plane rules are DESIGNED
+   to go NOT-APPLICABLE automatically there, but that detection is currently broken
+   (CMP-4521, see errata) — disable them with a TailoredProfile instead.
 
 Per the official support statement in [Configuring the hosted control planes management cluster](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#co-hcp-mgmt-config_compliance-operator-scans),
 only `ocp4-cis` and `ocp4-pci-dss` (platform profiles) are supported for the

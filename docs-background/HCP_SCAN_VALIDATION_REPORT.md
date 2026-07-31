@@ -11,7 +11,7 @@ all confirmed with direct evidence, plus the first bug discovery (six etcd rules
 false-FAIL on 4.21 HCP, later CMP-4520) and the CI-environment HostedCluster quirks
 (`SingleReplica`, `olmCatalogPlacement: guest`, both immutable). Includes a
 reproduction quick-reference. Later phases (STIG/High/CEL/in-hosted) are in the
-Solution README sections 8-10.
+Solution README sections 5-7.
 
 **Date:** 2026-07-31 (UTC)
 **Environment:** OpenShift `4.21.0-0.nightly-2026-07-20-173555` CI launch cluster on AWS
@@ -199,5 +199,5 @@ Full manifests used in this run are preserved in this repository
   CMP-4522 (CSV master nodeSelector), CMP-4523 (collector nodepools RBAC),
   CMP-4524 (extend HyperShift rule awareness).
 - The single-scan validation here grew into the full multi-layer package: see the
-  repo README (TL;DR + sections 8-10) and RULE_COVERAGE_MATRIX.md for per-rule
+  repo README (TL;DR + sections 5-7) and RULE_COVERAGE_MATRIX.md for per-rule
   coverage from both scan locations.
