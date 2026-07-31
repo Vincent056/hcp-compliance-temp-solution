@@ -252,27 +252,27 @@ method):
 **Wrong-target automated rules to disable in the TailoredProfile** (names as they appear
 in the cluster, i.e. content rule id with `ocp4-` prefix and dashes):
 
-| Rule (cluster name) | What it actually reads on the mgmt scan |
-|---|---|
-| `ocp4-api-server-anonymous-auth` | mgmt `clusterrolebindings` |
-| `ocp4-api-server-kube-no-unsupported-config-overrides` | mgmt `kubeapiservers` operator CR |
-| `ocp4-api-server-no-unsupported-config-overrides` | mgmt `openshiftapiservers` operator CR |
-| `ocp4-api-server-oauth-https-serving-cert` | mgmt `apiservers/cluster` |
-| `ocp4-api-server-openshift-https-serving-cert` | mgmt `apiservers/cluster` |
-| `ocp4-api-server-profiling-protected-by-rbac` | mgmt `clusterroles/cluster-debugger` |
-| `ocp4-api-server-tls-security-profile-custom-min-tls-version` | mgmt `apiservers/cluster` |
-| `ocp4-api-server-tls-security-profile-not-old` | mgmt `apiservers/cluster` |
-| `ocp4-audit-logging-enabled` | mgmt `apiservers/cluster` audit profile |
-| `ocp4-audit-profile-set` | mgmt `apiservers/cluster` audit profile |
-| `ocp4-ingress-controller-tls-cipher-suites` | mgmt default `ingresscontroller` |
-| `ocp4-ocp-allowed-registries` | mgmt `images/cluster` |
-| `ocp4-ocp-allowed-registries-for-import` | mgmt `images/cluster` |
-| `ocp4-ocp-insecure-allowed-registries-for-import` | mgmt `images/cluster` |
-| `ocp4-ocp-insecure-registries` | mgmt `images/cluster` |
-| `ocp4-rbac-debug-role-protects-pprof` | mgmt `clusterroles/cluster-debugger` |
-| `ocp4-scc-limit-container-allowed-capabilities` | mgmt `securitycontextconstraints` |
-| `ocp4-scheduler-profiling-protected-by-rbac` | mgmt `clusterroles/cluster-debugger` |
-| `ocp4-scheduler-service-protected-by-rbac` | mgmt `clusterroles/cluster-debugger` |
+| Rule (cluster name) | What it actually reads on the mgmt scan | Covered instead by |
+|---|---|---|
+| `ocp4-api-server-anonymous-auth` | mgmt `clusterrolebindings` | In-hosted scan |
+| `ocp4-api-server-kube-no-unsupported-config-overrides` | mgmt `kubeapiservers` operator CR | None — SSP statement (not tenant-settable in HCP) |
+| `ocp4-api-server-no-unsupported-config-overrides` | mgmt `openshiftapiservers` operator CR | None — SSP statement |
+| `ocp4-api-server-oauth-https-serving-cert` | mgmt `apiservers/cluster` | In-hosted scan (mirror CR) |
+| `ocp4-api-server-openshift-https-serving-cert` | mgmt `apiservers/cluster` | In-hosted scan (mirror CR) |
+| `ocp4-api-server-profiling-protected-by-rbac` | mgmt `clusterroles/cluster-debugger` | In-hosted scan |
+| `ocp4-api-server-tls-security-profile-custom-min-tls-version` | mgmt `apiservers/cluster` | CEL `hcp-api-tls-security-profile` |
+| `ocp4-api-server-tls-security-profile-not-old` | mgmt `apiservers/cluster` | CEL `hcp-api-tls-security-profile` |
+| `ocp4-audit-logging-enabled` | mgmt `apiservers/cluster` audit profile | CEL `hcp-audit-profile` |
+| `ocp4-audit-profile-set` | mgmt `apiservers/cluster` audit profile | CEL `hcp-audit-profile` |
+| `ocp4-ingress-controller-tls-cipher-suites` | mgmt default `ingresscontroller` | In-hosted scan |
+| `ocp4-ocp-allowed-registries` | mgmt `images/cluster` | In-hosted scan (optional CEL via `HostedCluster.spec.configuration.image`) |
+| `ocp4-ocp-allowed-registries-for-import` | mgmt `images/cluster` | In-hosted scan |
+| `ocp4-ocp-insecure-allowed-registries-for-import` | mgmt `images/cluster` | In-hosted scan |
+| `ocp4-ocp-insecure-registries` | mgmt `images/cluster` | In-hosted scan |
+| `ocp4-rbac-debug-role-protects-pprof` | mgmt `clusterroles/cluster-debugger` | In-hosted scan |
+| `ocp4-scc-limit-container-allowed-capabilities` | mgmt `securitycontextconstraints` | In-hosted scan |
+| `ocp4-scheduler-profiling-protected-by-rbac` | mgmt `clusterroles/cluster-debugger` | In-hosted scan |
+| `ocp4-scheduler-service-protected-by-rbac` | mgmt `clusterroles/cluster-debugger` | In-hosted scan |
 
 **Wrong-target manual rules** (these always return MANUAL, so they do not produce
 misleading PASS/FAIL; but their instructions must be performed against the *hosted*
@@ -312,33 +312,53 @@ instead).
 
 **Wrong-target automated rules to disable:**
 
-| Rule (cluster name) | What it actually reads on the mgmt scan |
-|---|---|
-| `ocp4-acs-sensor-exists` | mgmt deployments (looks for ACS sensor on mgmt) |
-| `ocp4-api-server-oauth-https-serving-cert` | mgmt `apiservers/cluster` |
-| `ocp4-api-server-openshift-https-serving-cert` | mgmt `apiservers/cluster` |
-| `ocp4-api-server-tls-security-profile` | mgmt `apiservers/cluster` |
-| `ocp4-audit-error-alert-exists` | mgmt `prometheusrules` |
-| `ocp4-audit-logging-enabled` | mgmt `apiservers/cluster` |
-| `ocp4-audit-profile-set` | mgmt `apiservers/cluster` |
-| `ocp4-container-security-operator-exists` | mgmt operator subscription |
-| `ocp4-ingress-controller-certificate` | mgmt default `ingresscontroller` |
-| `ocp4-ingress-controller-tls-security-profile` | mgmt default `ingresscontroller` |
-| `ocp4-machine-volume-encrypted` | mgmt `machinesets`/`machineconfigs` (hosted workers use NodePools instead) |
-| `ocp4-oauth-or-oauthclient-inactivity-timeout` | mgmt `oauths/cluster` + `oauthclients` |
-| `ocp4-rbac-cluster-roles-defined` | mgmt `clusterroles` |
-| `ocp4-rbac-roles-defined` | mgmt `roles` |
-| `ocp4-routes-protected-by-tls` | mgmt `routes` |
-| `ocp4-scansettingbinding-exists` | mgmt `scansettingbindings` (trivially PASS: the scan itself is one) |
-| `ocp4-security-profiles-operator-exists` | mgmt operator subscription |
-| `ocp4-storageclass-encryption-enabled` | mgmt `storageclasses` (AWS-gated) |
-| `ocp4-tls-version-check-router` | mgmt `router-default` deployment |
+| Rule (cluster name) | What it actually reads on the mgmt scan | Covered instead by |
+|---|---|---|
+| `ocp4-acs-sensor-exists` | mgmt deployments (looks for ACS sensor on mgmt) | In-hosted scan |
+| `ocp4-api-server-oauth-https-serving-cert` | mgmt `apiservers/cluster` | In-hosted scan (mirror CR) |
+| `ocp4-api-server-openshift-https-serving-cert` | mgmt `apiservers/cluster` | In-hosted scan (mirror CR) |
+| `ocp4-api-server-tls-security-profile` | mgmt `apiservers/cluster` | CEL `hcp-api-tls-security-profile` |
+| `ocp4-audit-error-alert-exists` | mgmt `prometheusrules` | Mgmt self-scan/monitoring (hosted KAS runs there) |
+| `ocp4-audit-logging-enabled` | mgmt `apiservers/cluster` | CEL `hcp-audit-profile` |
+| `ocp4-audit-profile-set` | mgmt `apiservers/cluster` | CEL `hcp-audit-profile` |
+| `ocp4-container-security-operator-exists` | mgmt operator subscription | In-hosted scan |
+| `ocp4-ingress-controller-certificate` | mgmt default `ingresscontroller` | In-hosted scan |
+| `ocp4-ingress-controller-tls-security-profile` | mgmt default `ingresscontroller` | In-hosted scan |
+| `ocp4-machine-volume-encrypted` | mgmt `machinesets`/`machineconfigs` (hosted workers use NodePools instead) | Mgmt storage checks for CP PVCs + SSP (hosted workers use NodePools) |
+| `ocp4-oauth-or-oauthclient-inactivity-timeout` | mgmt `oauths/cluster` + `oauthclients` | CEL `hcp-oauth-inactivity-timeout` |
+| `ocp4-rbac-cluster-roles-defined` | mgmt `clusterroles` | In-hosted scan |
+| `ocp4-rbac-roles-defined` | mgmt `roles` | In-hosted scan |
+| `ocp4-routes-protected-by-tls` | mgmt `routes` | In-hosted scan |
+| `ocp4-scansettingbinding-exists` | mgmt `scansettingbindings` (trivially PASS: the scan itself is one) | In-hosted scan (satisfied by installing CO there) |
+| `ocp4-security-profiles-operator-exists` | mgmt operator subscription | In-hosted scan |
+| `ocp4-storageclass-encryption-enabled` | mgmt `storageclasses` (AWS-gated) | In-hosted scan (hosted StorageClasses) |
+| `ocp4-tls-version-check-router` | mgmt `router-default` deployment | In-hosted scan |
 
 NOTE: `ocp4-oauth-or-oauthclient-inactivity-timeout` is a known inconsistency — the IdP
 rules (`idp_is_configured`, `ocp_idp_no_htpasswd`, `ocp_no_ldap_insecure`) were made
 HyperShift-aware by reading `HostedCluster.spec.configuration.oauth`, but this rule was
 not, even though the same data source would work. It is a good candidate for an upstream
 fix rather than a permanent exclusion.
+
+### How the disabled rules stay covered
+
+Disabling a wrong-target rule does not drop the requirement - it moves the check to
+the layer that can actually see the data:
+
+- **CEL CustomRules on the management cluster** cover the rules whose source of truth
+  is `HostedCluster.spec` (audit profile, TLS security profile, OAuth token policy) -
+  see `customrules.yaml` in the solution repo.
+- **The in-hosted tailored scan** (Compliance Operator inside the hosted cluster with
+  control-plane rules disabled, `tp-in-hosted.yaml`) covers everything that lives only
+  in the hosted cluster: RBAC, SCCs, registries, routes, ingress, installed operators.
+- **The 6 etcd rules** (also disabled - false positives on HCP 4.21+, CMP-4520) are
+  replaced 1:1 by the `hcp-etcd-*` CEL rules checking the env-based configuration.
+- **Only the two `no-unsupported-config-overrides` rules have no automated home** -
+  the operator CRs do not exist for hosted control planes and tenants cannot set the
+  overrides at all; record them as architecturally N/A in the SSP.
+
+The per-rule mapping for every rule of all three benchmarks (with live validation
+results from both scan locations) is in the solution repo's RULE_COVERAGE_MATRIX.md.
 
 ## 5. Should you actually disable them? Two caveats
 
