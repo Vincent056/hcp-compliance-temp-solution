@@ -1,0 +1,35 @@
+# Faithful CEL implementation of oauth_or_oauthclient_token_maxage OR-semantics:
+# compliant if the OAuth SERVER sets tokenConfig.accessTokenMaxAgeSeconds (<=8h),
+# OR every OAuthClient sets its own accessTokenMaxAgeSeconds (<=8h; zero clients
+# does not pass, matching the OVAL existence check).
+# Deployment target: the cluster whose OAuth config should be assessed - inside a
+# hosted cluster (with workers) for hosted-cluster compliance; OAuthClient objects
+# are not visible from the management cluster.
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-oauth-or-oauthclient-token-maxage
+  namespace: openshift-compliance
+spec:
+  title: "OAuth tokens must expire: server tokenConfig or every OAuthClient sets max age"
+  id: hcp_oauth_or_oauthclient_token_maxage
+  description: "OR-semantics of the original rule: OAuth server .spec.tokenConfig.accessTokenMaxAgeSeconds set (<=28800s), or every OAuthClient sets accessTokenMaxAgeSeconds (<=28800s). Client settings override the server; a client without the field falls back to the server value or the 24h default."
+  failureReason: "Neither the OAuth server tokenConfig.accessTokenMaxAgeSeconds nor per-client accessTokenMaxAgeSeconds (on every OAuthClient) is configured within 28800 seconds."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: oauth
+      kubernetesInputSpec:
+        group: config.openshift.io
+        apiVersion: v1
+        resource: oauths
+        resourceName: cluster
+    - name: oauthclients
+      kubernetesInputSpec:
+        group: oauth.openshift.io
+        apiVersion: v1
+        resource: oauthclients
+  expression: |
+    (has(oauth.spec) && has(oauth.spec.tokenConfig) && has(oauth.spec.tokenConfig.accessTokenMaxAgeSeconds) && oauth.spec.tokenConfig.accessTokenMaxAgeSeconds <= 28800) ||
+    (oauthclients.items.size() > 0 && oauthclients.items.all(c, has(c.accessTokenMaxAgeSeconds) && c.accessTokenMaxAgeSeconds <= 28800))

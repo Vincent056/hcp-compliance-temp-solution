@@ -15,7 +15,9 @@ Bottom line: combined layers cover 97% / 100% / 98% of automatable platform rule
 the only hard gap is the two `no-unsupported-config-overrides` rules (SSP statement).
 
 Generated 2026-07-31 from ComplianceAsCode content (CIS v1.9.0, STIG v2r3, NIST rev-4)
-merged with LIVE results from BOTH validated scan locations on cluster
+merged with LIVE results from BOTH validated scan locations (GA revalidation on
+2026-08-10 reproduced all four profiles' counts and FAIL sets identically - see the
+README section 8.1) on cluster
 `ci-ln-b6zqd5k-76ef8` (CO v1.9.1 in both places):
 
 - **Mgmt tailored scans** (official procedure: [Configuring the hosted control planes management cluster](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#co-hcp-mgmt-config_compliance-operator-scans)) — TailoredProfiles with HyperShift variables against
