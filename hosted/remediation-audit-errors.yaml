@@ -1,0 +1,42 @@
+# Remediation for hcp-audit-error-alert-exists (and the original
+# ocp4-audit-error-alert-exists) on HOSTED clusters: hypershift does not ship an
+# audit-error alert in the guest on OCP 4.21, so create one. Apply INSIDE the
+# hosted cluster.
+#
+# This is the hub's shipped audit-errors alert
+# (https://github.com/openshift/cluster-kube-apiserver-operator/blob/main/bindata/assets/alerts/audit-errors.yaml,
+# added in https://github.com/openshift/cluster-kube-apiserver-operator/pull/1166 and
+# https://github.com/openshift/cluster-kube-apiserver-operator/pull/1206) with ONE
+# adjustment: the expr drops the apiserver=~".+-apiserver" label matcher because
+# 4.21 hosted-cluster apiserver metrics do not carry that label (OCP 4.22 adds it;
+# on 4.22+ the stock hub expr also works). There is no official Red Hat
+# documentation page for creating this alert - the links above are the canonical
+# source.
+#
+# NOTE: for the alert to be EVALUATED, the namespace must be part of cluster
+# monitoring (openshift-kube-apiserver carries openshift.io/cluster-monitoring=true
+# by default) and the hosted cluster must have worker nodes running the monitoring
+# stack. The compliance check itself only verifies the alert rule exists.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: audit-errors
+  namespace: openshift-kube-apiserver
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  groups:
+    - name: apiserver-audit
+      rules:
+        - alert: AuditLogError
+          annotations:
+            summary: |-
+              An API Server instance was unable to write audit logs. This could be
+              triggered by the node running out of space, or a malicious actor
+              tampering with the audit logs.
+            description: An API Server had an error writing to an audit log.
+          expr: |
+            sum by (instance)(rate(apiserver_audit_error_total[5m])) / sum by (instance) (rate(apiserver_audit_event_total[5m])) > 0
+          for: 1m
+          labels:
+            severity: warning

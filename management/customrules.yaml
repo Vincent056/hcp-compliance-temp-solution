@@ -1,0 +1,432 @@
+# Management-side CEL rules: 2 dash-free selector Variables + 15 rules shipped as
+# directly-created Rule CRs (kind: Rule, NOT CustomRule) for NATIVE per-TP
+# setValues delivery - see README section 7.2. Apply with management/deploy.sh
+# (it also sets the required ownerReferences to the ocp4 ProfileBundle).
+apiVersion: compliance.openshift.io/v1alpha1
+kind: Variable
+metadata:
+  name: hypershiftcluster
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+id: xccdf_org.ssgproject.content_value_hypershiftcluster
+title: "Selector: name of the hosted cluster to assess"
+description: "Dash-free so CEL expressions can reference it as a legal identifier. Set per TailoredProfile via setValues; the CR value itself is never used for selection and never patched."
+type: string
+value: unset
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: Variable
+metadata:
+  name: hypershiftprefix
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+id: xccdf_org.ssgproject.content_value_hypershiftprefix
+title: "Selector: HostedCluster namespace / control-plane namespace prefix"
+description: "Dash-free so CEL expressions can reference it as a legal identifier. Set per TailoredProfile via setValues; the CR value itself is never used for selection and never patched."
+type: string
+value: clusters
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: Rule
+metadata:
+  name: hcp-etcd-cert-file
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+id: xccdf_org.ssgproject.content_rule_hcp_etcd_cert_file
+title: "etcd server cert file configured (env-based, replaces ocp4-etcd-cert-file)"
+description: "etcd server cert file configured (env-based, replaces ocp4-etcd-cert-file). PER-CLUSTER via TailoredProfile setValues, NATIVE delivery: the operator does not support setValues in CEL CustomRules (rejected at validation), but directly-created Rule CRs have no admission validation and the scanner declares and binds each TailoredProfile's setValues at evaluation. This rule's expression references the dash-free Variable CRs hypershiftcluster / hypershiftprefix directly, so every TailoredProfile that enables it selects its own target cluster - multiple TailoredProfiles can scan different hosted clusters CONCURRENTLY with this single rule. Both setValues entries are REQUIRED in each enabling TailoredProfile (a missing entry surfaces as a scan-time ERROR, not a FAIL). Rule CRs get no admission validation - validate expression changes with celctl before applying. The Rule and Variable CRs carry ownerReferences to the ocp4 ProfileBundle (required by the TailoredProfile controller; set by management/deploy.sh) - re-apply after any ProfileBundle recreation. No bundle Variable CR is read or modified."
+failureReason: "etcd in the selected hosted cluster's control-plane namespace does not set ETCD_CERT_FILE appropriately (env-based TLS config), or no etcd pods were found there. Also check hcp-selector-valid: it FAILs when the selected HostedCluster does not exist; a scan-time ERROR on this rule means a setValues entry is missing in the enabling TailoredProfile."
+severity: medium
+checkType: Platform
+scannerType: CEL
+inputs:
+  - name: pods
+    kubernetesInputSpec:
+      apiVersion: v1
+      resource: pods
+expression: |
+  pods.items.exists(p, p.metadata.namespace == hypershiftprefix + '-' + hypershiftcluster &&
+    has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd') &&
+  pods.items.filter(p, p.metadata.namespace == hypershiftprefix + '-' + hypershiftcluster &&
+    has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd')
+    .all(p, p.spec.containers.exists(c, c.name == 'etcd') &&
+      p.spec.containers.filter(c, c.name == 'etcd')
+        .all(c, c.env.exists(e, e.name == 'ETCD_CERT_FILE' && has(e.value) && e.value != '')))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: Rule
+metadata:
+  name: hcp-etcd-key-file
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+id: xccdf_org.ssgproject.content_rule_hcp_etcd_key_file
+title: "etcd server key file configured (replaces ocp4-etcd-key-file)"
+description: "etcd server key file configured (replaces ocp4-etcd-key-file). PER-CLUSTER via TailoredProfile setValues, NATIVE delivery: the operator does not support setValues in CEL CustomRules (rejected at validation), but directly-created Rule CRs have no admission validation and the scanner declares and binds each TailoredProfile's setValues at evaluation. This rule's expression references the dash-free Variable CRs hypershiftcluster / hypershiftprefix directly, so every TailoredProfile that enables it selects its own target cluster - multiple TailoredProfiles can scan different hosted clusters CONCURRENTLY with this single rule. Both setValues entries are REQUIRED in each enabling TailoredProfile (a missing entry surfaces as a scan-time ERROR, not a FAIL). Rule CRs get no admission validation - validate expression changes with celctl before applying. The Rule and Variable CRs carry ownerReferences to the ocp4 ProfileBundle (required by the TailoredProfile controller; set by management/deploy.sh) - re-apply after any ProfileBundle recreation. No bundle Variable CR is read or modified."
+failureReason: "etcd in the selected hosted cluster's control-plane namespace does not set ETCD_KEY_FILE appropriately (env-based TLS config), or no etcd pods were found there. Also check hcp-selector-valid: it FAILs when the selected HostedCluster does not exist; a scan-time ERROR on this rule means a setValues entry is missing in the enabling TailoredProfile."
+severity: medium
+checkType: Platform
+scannerType: CEL
+inputs:
+  - name: pods
+    kubernetesInputSpec:
+      apiVersion: v1
+      resource: pods
+expression: |
+  pods.items.exists(p, p.metadata.namespace == hypershiftprefix + '-' + hypershiftcluster &&
+    has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd') &&
+  pods.items.filter(p, p.metadata.namespace == hypershiftprefix + '-' + hypershiftcluster &&
+    has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd')
+    .all(p, p.spec.containers.exists(c, c.name == 'etcd') &&
+      p.spec.containers.filter(c, c.name == 'etcd')
+        .all(c, c.env.exists(e, e.name == 'ETCD_KEY_FILE' && has(e.value) && e.value != '')))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: Rule
+metadata:
+  name: hcp-etcd-client-cert-auth
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+id: xccdf_org.ssgproject.content_rule_hcp_etcd_client_cert_auth
+title: "etcd client cert auth enabled (replaces ocp4-etcd-client-cert-auth)"
+description: "etcd client cert auth enabled (replaces ocp4-etcd-client-cert-auth). PER-CLUSTER via TailoredProfile setValues, NATIVE delivery: the operator does not support setValues in CEL CustomRules (rejected at validation), but directly-created Rule CRs have no admission validation and the scanner declares and binds each TailoredProfile's setValues at evaluation. This rule's expression references the dash-free Variable CRs hypershiftcluster / hypershiftprefix directly, so every TailoredProfile that enables it selects its own target cluster - multiple TailoredProfiles can scan different hosted clusters CONCURRENTLY with this single rule. Both setValues entries are REQUIRED in each enabling TailoredProfile (a missing entry surfaces as a scan-time ERROR, not a FAIL). Rule CRs get no admission validation - validate expression changes with celctl before applying. The Rule and Variable CRs carry ownerReferences to the ocp4 ProfileBundle (required by the TailoredProfile controller; set by management/deploy.sh) - re-apply after any ProfileBundle recreation. No bundle Variable CR is read or modified."
+failureReason: "etcd in the selected hosted cluster's control-plane namespace does not set ETCD_CLIENT_CERT_AUTH appropriately (env-based TLS config), or no etcd pods were found there. Also check hcp-selector-valid: it FAILs when the selected HostedCluster does not exist; a scan-time ERROR on this rule means a setValues entry is missing in the enabling TailoredProfile."
+severity: medium
+checkType: Platform
+scannerType: CEL
+inputs:
+  - name: pods
+    kubernetesInputSpec:
+      apiVersion: v1
+      resource: pods
+expression: |
+  pods.items.exists(p, p.metadata.namespace == hypershiftprefix + '-' + hypershiftcluster &&
+    has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd') &&
+  pods.items.filter(p, p.metadata.namespace == hypershiftprefix + '-' + hypershiftcluster &&
+    has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd')
+    .all(p, p.spec.containers.exists(c, c.name == 'etcd') &&
+      p.spec.containers.filter(c, c.name == 'etcd')
+        .all(c, c.env.exists(e, e.name == 'ETCD_CLIENT_CERT_AUTH' && has(e.value) && e.value == 'true')))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: Rule
+metadata:
+  name: hcp-etcd-peer-cert-file
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+id: xccdf_org.ssgproject.content_rule_hcp_etcd_peer_cert_file
+title: "etcd peer cert file configured (replaces ocp4-etcd-peer-cert-file)"
+description: "etcd peer cert file configured (replaces ocp4-etcd-peer-cert-file). PER-CLUSTER via TailoredProfile setValues, NATIVE delivery: the operator does not support setValues in CEL CustomRules (rejected at validation), but directly-created Rule CRs have no admission validation and the scanner declares and binds each TailoredProfile's setValues at evaluation. This rule's expression references the dash-free Variable CRs hypershiftcluster / hypershiftprefix directly, so every TailoredProfile that enables it selects its own target cluster - multiple TailoredProfiles can scan different hosted clusters CONCURRENTLY with this single rule. Both setValues entries are REQUIRED in each enabling TailoredProfile (a missing entry surfaces as a scan-time ERROR, not a FAIL). Rule CRs get no admission validation - validate expression changes with celctl before applying. The Rule and Variable CRs carry ownerReferences to the ocp4 ProfileBundle (required by the TailoredProfile controller; set by management/deploy.sh) - re-apply after any ProfileBundle recreation. No bundle Variable CR is read or modified."
+failureReason: "etcd in the selected hosted cluster's control-plane namespace does not set ETCD_PEER_CERT_FILE appropriately (env-based TLS config), or no etcd pods were found there. Also check hcp-selector-valid: it FAILs when the selected HostedCluster does not exist; a scan-time ERROR on this rule means a setValues entry is missing in the enabling TailoredProfile."
+severity: medium
+checkType: Platform
+scannerType: CEL
+inputs:
+  - name: pods
+    kubernetesInputSpec:
+      apiVersion: v1
+      resource: pods
+expression: |
+  pods.items.exists(p, p.metadata.namespace == hypershiftprefix + '-' + hypershiftcluster &&
+    has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd') &&
+  pods.items.filter(p, p.metadata.namespace == hypershiftprefix + '-' + hypershiftcluster &&
+    has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd')
+    .all(p, p.spec.containers.exists(c, c.name == 'etcd') &&
+      p.spec.containers.filter(c, c.name == 'etcd')
+        .all(c, c.env.exists(e, e.name == 'ETCD_PEER_CERT_FILE' && has(e.value) && e.value != '')))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: Rule
+metadata:
+  name: hcp-etcd-peer-key-file
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+id: xccdf_org.ssgproject.content_rule_hcp_etcd_peer_key_file
+title: "etcd peer key file configured (replaces ocp4-etcd-peer-key-file)"
+description: "etcd peer key file configured (replaces ocp4-etcd-peer-key-file). PER-CLUSTER via TailoredProfile setValues, NATIVE delivery: the operator does not support setValues in CEL CustomRules (rejected at validation), but directly-created Rule CRs have no admission validation and the scanner declares and binds each TailoredProfile's setValues at evaluation. This rule's expression references the dash-free Variable CRs hypershiftcluster / hypershiftprefix directly, so every TailoredProfile that enables it selects its own target cluster - multiple TailoredProfiles can scan different hosted clusters CONCURRENTLY with this single rule. Both setValues entries are REQUIRED in each enabling TailoredProfile (a missing entry surfaces as a scan-time ERROR, not a FAIL). Rule CRs get no admission validation - validate expression changes with celctl before applying. The Rule and Variable CRs carry ownerReferences to the ocp4 ProfileBundle (required by the TailoredProfile controller; set by management/deploy.sh) - re-apply after any ProfileBundle recreation. No bundle Variable CR is read or modified."
+failureReason: "etcd in the selected hosted cluster's control-plane namespace does not set ETCD_PEER_KEY_FILE appropriately (env-based TLS config), or no etcd pods were found there. Also check hcp-selector-valid: it FAILs when the selected HostedCluster does not exist; a scan-time ERROR on this rule means a setValues entry is missing in the enabling TailoredProfile."
+severity: medium
+checkType: Platform
+scannerType: CEL
+inputs:
+  - name: pods
+    kubernetesInputSpec:
+      apiVersion: v1
+      resource: pods
+expression: |
+  pods.items.exists(p, p.metadata.namespace == hypershiftprefix + '-' + hypershiftcluster &&
+    has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd') &&
+  pods.items.filter(p, p.metadata.namespace == hypershiftprefix + '-' + hypershiftcluster &&
+    has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd')
+    .all(p, p.spec.containers.exists(c, c.name == 'etcd') &&
+      p.spec.containers.filter(c, c.name == 'etcd')
+        .all(c, c.env.exists(e, e.name == 'ETCD_PEER_KEY_FILE' && has(e.value) && e.value != '')))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: Rule
+metadata:
+  name: hcp-etcd-peer-client-cert-auth
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+id: xccdf_org.ssgproject.content_rule_hcp_etcd_peer_client_cert_auth
+title: "etcd peer client cert auth enabled (replaces ocp4-etcd-peer-client-cert-auth)"
+description: "etcd peer client cert auth enabled (replaces ocp4-etcd-peer-client-cert-auth). PER-CLUSTER via TailoredProfile setValues, NATIVE delivery: the operator does not support setValues in CEL CustomRules (rejected at validation), but directly-created Rule CRs have no admission validation and the scanner declares and binds each TailoredProfile's setValues at evaluation. This rule's expression references the dash-free Variable CRs hypershiftcluster / hypershiftprefix directly, so every TailoredProfile that enables it selects its own target cluster - multiple TailoredProfiles can scan different hosted clusters CONCURRENTLY with this single rule. Both setValues entries are REQUIRED in each enabling TailoredProfile (a missing entry surfaces as a scan-time ERROR, not a FAIL). Rule CRs get no admission validation - validate expression changes with celctl before applying. The Rule and Variable CRs carry ownerReferences to the ocp4 ProfileBundle (required by the TailoredProfile controller; set by management/deploy.sh) - re-apply after any ProfileBundle recreation. No bundle Variable CR is read or modified."
+failureReason: "etcd in the selected hosted cluster's control-plane namespace does not set ETCD_PEER_CLIENT_CERT_AUTH appropriately (env-based TLS config), or no etcd pods were found there. Also check hcp-selector-valid: it FAILs when the selected HostedCluster does not exist; a scan-time ERROR on this rule means a setValues entry is missing in the enabling TailoredProfile."
+severity: medium
+checkType: Platform
+scannerType: CEL
+inputs:
+  - name: pods
+    kubernetesInputSpec:
+      apiVersion: v1
+      resource: pods
+expression: |
+  pods.items.exists(p, p.metadata.namespace == hypershiftprefix + '-' + hypershiftcluster &&
+    has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd') &&
+  pods.items.filter(p, p.metadata.namespace == hypershiftprefix + '-' + hypershiftcluster &&
+    has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd')
+    .all(p, p.spec.containers.exists(c, c.name == 'etcd') &&
+      p.spec.containers.filter(c, c.name == 'etcd')
+        .all(c, c.env.exists(e, e.name == 'ETCD_PEER_CLIENT_CERT_AUTH' && has(e.value) && e.value == 'true')))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: Rule
+metadata:
+  name: hcp-fips-enabled
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+id: xccdf_org.ssgproject.content_rule_hcp_fips_enabled
+title: "Selected hosted cluster must be created with FIPS mode enabled"
+description: "Selected hosted cluster must be created with FIPS mode enabled. PER-CLUSTER via TailoredProfile setValues, NATIVE delivery: the operator does not support setValues in CEL CustomRules (rejected at validation), but directly-created Rule CRs have no admission validation and the scanner declares and binds each TailoredProfile's setValues at evaluation. This rule's expression references the dash-free Variable CRs hypershiftcluster / hypershiftprefix directly, so every TailoredProfile that enables it selects its own target cluster - multiple TailoredProfiles can scan different hosted clusters CONCURRENTLY with this single rule. Both setValues entries are REQUIRED in each enabling TailoredProfile (a missing entry surfaces as a scan-time ERROR, not a FAIL). Rule CRs get no admission validation - validate expression changes with celctl before applying. The Rule and Variable CRs carry ownerReferences to the ocp4 ProfileBundle (required by the TailoredProfile controller; set by management/deploy.sh) - re-apply after any ProfileBundle recreation. No bundle Variable CR is read or modified."
+failureReason: "The selected HostedCluster does not exist or does not set .spec.fips=true. FIPS is immutable; the cluster must be recreated with fips enabled. Also check hcp-selector-valid: it FAILs when the selected HostedCluster does not exist; a scan-time ERROR on this rule means a setValues entry is missing in the enabling TailoredProfile."
+severity: high
+checkType: Platform
+scannerType: CEL
+inputs:
+  - name: hcs
+    kubernetesInputSpec:
+      group: hypershift.openshift.io
+      apiVersion: v1beta1
+      resource: hostedclusters
+expression: |
+  hcs.items.exists(hc, hc.metadata.name == hypershiftcluster && hc.metadata.namespace == hypershiftprefix) &&
+  hcs.items.filter(hc, hc.metadata.name == hypershiftcluster && hc.metadata.namespace == hypershiftprefix)
+    .all(hc, has(hc.spec.fips) && hc.spec.fips == true)
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: Rule
+metadata:
+  name: hcp-etcd-secret-encryption
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+id: xccdf_org.ssgproject.content_rule_hcp_etcd_secret_encryption
+title: "Selected hosted cluster etcd secrets must be encrypted (NIST SC-28)"
+description: "Selected hosted cluster etcd secrets must be encrypted (NIST SC-28). PER-CLUSTER via TailoredProfile setValues, NATIVE delivery: the operator does not support setValues in CEL CustomRules (rejected at validation), but directly-created Rule CRs have no admission validation and the scanner declares and binds each TailoredProfile's setValues at evaluation. This rule's expression references the dash-free Variable CRs hypershiftcluster / hypershiftprefix directly, so every TailoredProfile that enables it selects its own target cluster - multiple TailoredProfiles can scan different hosted clusters CONCURRENTLY with this single rule. Both setValues entries are REQUIRED in each enabling TailoredProfile (a missing entry surfaces as a scan-time ERROR, not a FAIL). Rule CRs get no admission validation - validate expression changes with celctl before applying. The Rule and Variable CRs carry ownerReferences to the ocp4 ProfileBundle (required by the TailoredProfile controller; set by management/deploy.sh) - re-apply after any ProfileBundle recreation. No bundle Variable CR is read or modified."
+failureReason: "The selected HostedCluster does not exist or .spec.secretEncryption is not set to kms or aescbc. Also check hcp-selector-valid: it FAILs when the selected HostedCluster does not exist; a scan-time ERROR on this rule means a setValues entry is missing in the enabling TailoredProfile."
+severity: high
+checkType: Platform
+scannerType: CEL
+inputs:
+  - name: hcs
+    kubernetesInputSpec:
+      group: hypershift.openshift.io
+      apiVersion: v1beta1
+      resource: hostedclusters
+expression: |
+  hcs.items.exists(hc, hc.metadata.name == hypershiftcluster && hc.metadata.namespace == hypershiftprefix) &&
+  hcs.items.filter(hc, hc.metadata.name == hypershiftcluster && hc.metadata.namespace == hypershiftprefix)
+    .all(hc, has(hc.spec.secretEncryption) && has(hc.spec.secretEncryption.type) &&
+      (hc.spec.secretEncryption.type == 'kms' || hc.spec.secretEncryption.type == 'aescbc'))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: Rule
+metadata:
+  name: hcp-audit-profile
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+id: xccdf_org.ssgproject.content_rule_hcp_audit_profile
+title: "Selected hosted cluster API server audit profile must log request bodies (STIG / NIST AU-2)"
+description: "Selected hosted cluster API server audit profile must log request bodies (STIG / NIST AU-2). PER-CLUSTER via TailoredProfile setValues, NATIVE delivery: the operator does not support setValues in CEL CustomRules (rejected at validation), but directly-created Rule CRs have no admission validation and the scanner declares and binds each TailoredProfile's setValues at evaluation. This rule's expression references the dash-free Variable CRs hypershiftcluster / hypershiftprefix directly, so every TailoredProfile that enables it selects its own target cluster - multiple TailoredProfiles can scan different hosted clusters CONCURRENTLY with this single rule. Both setValues entries are REQUIRED in each enabling TailoredProfile (a missing entry surfaces as a scan-time ERROR, not a FAIL). Rule CRs get no admission validation - validate expression changes with celctl before applying. The Rule and Variable CRs carry ownerReferences to the ocp4 ProfileBundle (required by the TailoredProfile controller; set by management/deploy.sh) - re-apply after any ProfileBundle recreation. No bundle Variable CR is read or modified."
+failureReason: "The selected HostedCluster does not exist or .spec.configuration.apiServer.audit.profile is not WriteRequestBodies or AllRequestBodies. Also check hcp-selector-valid: it FAILs when the selected HostedCluster does not exist; a scan-time ERROR on this rule means a setValues entry is missing in the enabling TailoredProfile."
+severity: medium
+checkType: Platform
+scannerType: CEL
+inputs:
+  - name: hcs
+    kubernetesInputSpec:
+      group: hypershift.openshift.io
+      apiVersion: v1beta1
+      resource: hostedclusters
+expression: |
+  hcs.items.exists(hc, hc.metadata.name == hypershiftcluster && hc.metadata.namespace == hypershiftprefix) &&
+  hcs.items.filter(hc, hc.metadata.name == hypershiftcluster && hc.metadata.namespace == hypershiftprefix)
+    .all(hc, has(hc.spec.configuration) && has(hc.spec.configuration.apiServer) &&
+      has(hc.spec.configuration.apiServer.audit) && has(hc.spec.configuration.apiServer.audit.profile) &&
+      hc.spec.configuration.apiServer.audit.profile in ['WriteRequestBodies', 'AllRequestBodies'])
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: Rule
+metadata:
+  name: hcp-api-tls-security-profile
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+id: xccdf_org.ssgproject.content_rule_hcp_api_tls_security_profile
+title: "Selected hosted cluster API server must not use Old TLS profile (NIST SC-8)"
+description: "Selected hosted cluster API server must not use Old TLS profile (NIST SC-8). PER-CLUSTER via TailoredProfile setValues, NATIVE delivery: the operator does not support setValues in CEL CustomRules (rejected at validation), but directly-created Rule CRs have no admission validation and the scanner declares and binds each TailoredProfile's setValues at evaluation. This rule's expression references the dash-free Variable CRs hypershiftcluster / hypershiftprefix directly, so every TailoredProfile that enables it selects its own target cluster - multiple TailoredProfiles can scan different hosted clusters CONCURRENTLY with this single rule. Both setValues entries are REQUIRED in each enabling TailoredProfile (a missing entry surfaces as a scan-time ERROR, not a FAIL). Rule CRs get no admission validation - validate expression changes with celctl before applying. The Rule and Variable CRs carry ownerReferences to the ocp4 ProfileBundle (required by the TailoredProfile controller; set by management/deploy.sh) - re-apply after any ProfileBundle recreation. No bundle Variable CR is read or modified."
+failureReason: "The selected HostedCluster does not exist, or sets an Old or weak Custom tlsSecurityProfile on the API server. Also check hcp-selector-valid: it FAILs when the selected HostedCluster does not exist; a scan-time ERROR on this rule means a setValues entry is missing in the enabling TailoredProfile."
+severity: medium
+checkType: Platform
+scannerType: CEL
+inputs:
+  - name: hcs
+    kubernetesInputSpec:
+      group: hypershift.openshift.io
+      apiVersion: v1beta1
+      resource: hostedclusters
+expression: |
+  hcs.items.exists(hc, hc.metadata.name == hypershiftcluster && hc.metadata.namespace == hypershiftprefix) &&
+  hcs.items.filter(hc, hc.metadata.name == hypershiftcluster && hc.metadata.namespace == hypershiftprefix)
+    .all(hc, !has(hc.spec.configuration) || !has(hc.spec.configuration.apiServer) ||
+      !has(hc.spec.configuration.apiServer.tlsSecurityProfile) ||
+      (hc.spec.configuration.apiServer.tlsSecurityProfile.type != 'Old' &&
+       (hc.spec.configuration.apiServer.tlsSecurityProfile.type != 'Custom' ||
+        (has(hc.spec.configuration.apiServer.tlsSecurityProfile.custom.minTLSVersion) &&
+         !(hc.spec.configuration.apiServer.tlsSecurityProfile.custom.minTLSVersion in ['VersionTLS10', 'VersionTLS11'])))))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: Rule
+metadata:
+  name: hcp-oauth-token-maxage
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+id: xccdf_org.ssgproject.content_rule_hcp_oauth_token_maxage
+title: "Selected hosted cluster OAuth access token max age must be 8h or less (STIG; server half of oauth-or-oauthclient-token-maxage)"
+description: "Selected hosted cluster OAuth access token max age must be 8h or less (STIG; server half of oauth-or-oauthclient-token-maxage). PER-CLUSTER via TailoredProfile setValues, NATIVE delivery: the operator does not support setValues in CEL CustomRules (rejected at validation), but directly-created Rule CRs have no admission validation and the scanner declares and binds each TailoredProfile's setValues at evaluation. This rule's expression references the dash-free Variable CRs hypershiftcluster / hypershiftprefix directly, so every TailoredProfile that enables it selects its own target cluster - multiple TailoredProfiles can scan different hosted clusters CONCURRENTLY with this single rule. Both setValues entries are REQUIRED in each enabling TailoredProfile (a missing entry surfaces as a scan-time ERROR, not a FAIL). Rule CRs get no admission validation - validate expression changes with celctl before applying. The Rule and Variable CRs carry ownerReferences to the ocp4 ProfileBundle (required by the TailoredProfile controller; set by management/deploy.sh) - re-apply after any ProfileBundle recreation. No bundle Variable CR is read or modified."
+failureReason: "The selected HostedCluster does not exist or .spec.configuration.oauth.tokenConfig.accessTokenMaxAgeSeconds is unset or exceeds 28800. Not a finding if the client half (hcp-oauthclient-token-maxage inside the hosted cluster) PASSes. Also check hcp-selector-valid: it FAILs when the selected HostedCluster does not exist; a scan-time ERROR on this rule means a setValues entry is missing in the enabling TailoredProfile."
+severity: medium
+checkType: Platform
+scannerType: CEL
+inputs:
+  - name: hcs
+    kubernetesInputSpec:
+      group: hypershift.openshift.io
+      apiVersion: v1beta1
+      resource: hostedclusters
+expression: |
+  hcs.items.exists(hc, hc.metadata.name == hypershiftcluster && hc.metadata.namespace == hypershiftprefix) &&
+  hcs.items.filter(hc, hc.metadata.name == hypershiftcluster && hc.metadata.namespace == hypershiftprefix)
+    .all(hc, has(hc.spec.configuration) && has(hc.spec.configuration.oauth) &&
+      has(hc.spec.configuration.oauth.tokenConfig) &&
+      has(hc.spec.configuration.oauth.tokenConfig.accessTokenMaxAgeSeconds) &&
+      hc.spec.configuration.oauth.tokenConfig.accessTokenMaxAgeSeconds <= 28800)
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: Rule
+metadata:
+  name: hcp-oauth-inactivity-timeout
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+id: xccdf_org.ssgproject.content_rule_hcp_oauth_inactivity_timeout
+title: "Selected hosted cluster OAuth token inactivity timeout must be set (STIG SRG-APP-000190 / NIST AC-12; server half of oauth-or-oauthclient-inactivity-timeout)"
+description: "Selected hosted cluster OAuth token inactivity timeout must be set (STIG SRG-APP-000190 / NIST AC-12; server half of oauth-or-oauthclient-inactivity-timeout). PER-CLUSTER via TailoredProfile setValues, NATIVE delivery: the operator does not support setValues in CEL CustomRules (rejected at validation), but directly-created Rule CRs have no admission validation and the scanner declares and binds each TailoredProfile's setValues at evaluation. This rule's expression references the dash-free Variable CRs hypershiftcluster / hypershiftprefix directly, so every TailoredProfile that enables it selects its own target cluster - multiple TailoredProfiles can scan different hosted clusters CONCURRENTLY with this single rule. Both setValues entries are REQUIRED in each enabling TailoredProfile (a missing entry surfaces as a scan-time ERROR, not a FAIL). Rule CRs get no admission validation - validate expression changes with celctl before applying. The Rule and Variable CRs carry ownerReferences to the ocp4 ProfileBundle (required by the TailoredProfile controller; set by management/deploy.sh) - re-apply after any ProfileBundle recreation. No bundle Variable CR is read or modified."
+failureReason: "The selected HostedCluster does not exist or .spec.configuration.oauth.tokenConfig.accessTokenInactivityTimeout is not set. Not a finding if the client half (hcp-oauthclient-inactivity-timeout inside the hosted cluster) PASSes. Also check hcp-selector-valid: it FAILs when the selected HostedCluster does not exist; a scan-time ERROR on this rule means a setValues entry is missing in the enabling TailoredProfile."
+severity: medium
+checkType: Platform
+scannerType: CEL
+inputs:
+  - name: hcs
+    kubernetesInputSpec:
+      group: hypershift.openshift.io
+      apiVersion: v1beta1
+      resource: hostedclusters
+expression: |
+  hcs.items.exists(hc, hc.metadata.name == hypershiftcluster && hc.metadata.namespace == hypershiftprefix) &&
+  hcs.items.filter(hc, hc.metadata.name == hypershiftcluster && hc.metadata.namespace == hypershiftprefix)
+    .all(hc, has(hc.spec.configuration) && has(hc.spec.configuration.oauth) &&
+      has(hc.spec.configuration.oauth.tokenConfig) &&
+      has(hc.spec.configuration.oauth.tokenConfig.accessTokenInactivityTimeout))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: Rule
+metadata:
+  name: hcp-audit-webhook
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+id: xccdf_org.ssgproject.content_rule_hcp_audit_webhook
+title: "Selected hosted cluster audit webhook must be configured for log offload (NIST AU-4(1))"
+description: "Selected hosted cluster audit webhook must be configured for log offload (NIST AU-4(1)). PER-CLUSTER via TailoredProfile setValues, NATIVE delivery: the operator does not support setValues in CEL CustomRules (rejected at validation), but directly-created Rule CRs have no admission validation and the scanner declares and binds each TailoredProfile's setValues at evaluation. This rule's expression references the dash-free Variable CRs hypershiftcluster / hypershiftprefix directly, so every TailoredProfile that enables it selects its own target cluster - multiple TailoredProfiles can scan different hosted clusters CONCURRENTLY with this single rule. Both setValues entries are REQUIRED in each enabling TailoredProfile (a missing entry surfaces as a scan-time ERROR, not a FAIL). Rule CRs get no admission validation - validate expression changes with celctl before applying. The Rule and Variable CRs carry ownerReferences to the ocp4 ProfileBundle (required by the TailoredProfile controller; set by management/deploy.sh) - re-apply after any ProfileBundle recreation. No bundle Variable CR is read or modified."
+failureReason: "The selected HostedCluster does not exist or .spec.auditWebhook is not set; hosted KAS audit logs are not offloaded. Also check hcp-selector-valid: it FAILs when the selected HostedCluster does not exist; a scan-time ERROR on this rule means a setValues entry is missing in the enabling TailoredProfile."
+severity: medium
+checkType: Platform
+scannerType: CEL
+inputs:
+  - name: hcs
+    kubernetesInputSpec:
+      group: hypershift.openshift.io
+      apiVersion: v1beta1
+      resource: hostedclusters
+expression: |
+  hcs.items.exists(hc, hc.metadata.name == hypershiftcluster && hc.metadata.namespace == hypershiftprefix) &&
+  hcs.items.filter(hc, hc.metadata.name == hypershiftcluster && hc.metadata.namespace == hypershiftprefix)
+    .all(hc, has(hc.spec.auditWebhook) && hc.spec.auditWebhook.name != '')
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: Rule
+metadata:
+  name: hcp-nodepool-config
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+id: xccdf_org.ssgproject.content_rule_hcp_nodepool_config
+title: "NodePools of the selected hosted cluster must carry node hardening configuration"
+description: "NodePools of the selected hosted cluster must carry node hardening configuration. PER-CLUSTER via TailoredProfile setValues, NATIVE delivery: the operator does not support setValues in CEL CustomRules (rejected at validation), but directly-created Rule CRs have no admission validation and the scanner declares and binds each TailoredProfile's setValues at evaluation. This rule's expression references the dash-free Variable CRs hypershiftcluster / hypershiftprefix directly, so every TailoredProfile that enables it selects its own target cluster - multiple TailoredProfiles can scan different hosted clusters CONCURRENTLY with this single rule. Both setValues entries are REQUIRED in each enabling TailoredProfile (a missing entry surfaces as a scan-time ERROR, not a FAIL). Rule CRs get no admission validation - validate expression changes with celctl before applying. The Rule and Variable CRs carry ownerReferences to the ocp4 ProfileBundle (required by the TailoredProfile controller; set by management/deploy.sh) - re-apply after any ProfileBundle recreation. No bundle Variable CR is read or modified."
+failureReason: "A NodePool of the selected hosted cluster has no .spec.config; its worker nodes receive no hardening MachineConfigs. Vacuous-PASS when the selected cluster has no NodePools. Also check hcp-selector-valid: it FAILs when the selected HostedCluster does not exist; a scan-time ERROR on this rule means a setValues entry is missing in the enabling TailoredProfile."
+severity: medium
+checkType: Platform
+scannerType: CEL
+inputs:
+  - name: nps
+    kubernetesInputSpec:
+      group: hypershift.openshift.io
+      apiVersion: v1beta1
+      resource: nodepools
+expression: |
+  nps.items.filter(np, np.metadata.namespace == hypershiftprefix && has(np.spec.clusterName) && np.spec.clusterName == hypershiftcluster)
+    .all(np, has(np.spec.config) && np.spec.config.size() > 0)
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: Rule
+metadata:
+  name: hcp-selector-valid
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+id: xccdf_org.ssgproject.content_rule_hcp_selector_valid
+title: "Selector sanity: the selected HostedCluster exists"
+description: "Selector sanity: the selected HostedCluster exists. PER-CLUSTER via TailoredProfile setValues, NATIVE delivery: the operator does not support setValues in CEL CustomRules (rejected at validation), but directly-created Rule CRs have no admission validation and the scanner declares and binds each TailoredProfile's setValues at evaluation. This rule's expression references the dash-free Variable CRs hypershiftcluster / hypershiftprefix directly, so every TailoredProfile that enables it selects its own target cluster - multiple TailoredProfiles can scan different hosted clusters CONCURRENTLY with this single rule. Both setValues entries are REQUIRED in each enabling TailoredProfile (a missing entry surfaces as a scan-time ERROR, not a FAIL). Rule CRs get no admission validation - validate expression changes with celctl before applying. The Rule and Variable CRs carry ownerReferences to the ocp4 ProfileBundle (required by the TailoredProfile controller; set by management/deploy.sh) - re-apply after any ProfileBundle recreation. No bundle Variable CR is read or modified."
+failureReason: "The HostedCluster named by the hypershiftcluster / hypershiftprefix setValues does not exist. Fix the enabling TailoredProfile's setValues; while this FAILs, FAILs of the other hcp-* rules are not trustworthy findings. (A scan-time ERROR instead means a setValues entry is missing entirely.)"
+severity: medium
+checkType: Platform
+scannerType: CEL
+inputs:
+  - name: hcs
+    kubernetesInputSpec:
+      group: hypershift.openshift.io
+      apiVersion: v1beta1
+      resource: hostedclusters
+expression: |
+  hcs.items.exists(hc, hc.metadata.name == hypershiftcluster && hc.metadata.namespace == hypershiftprefix)

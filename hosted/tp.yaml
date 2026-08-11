@@ -3,6 +3,8 @@ kind: TailoredProfile
 metadata:
   name: hosted-cis-tailored
   namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
 spec:
   extends: ocp4-cis
   title: "ocp4-cis for hosted clusters (CP rules disabled)"
@@ -107,6 +109,8 @@ kind: TailoredProfile
 metadata:
   name: hosted-stig-tailored
   namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
 spec:
   extends: ocp4-stig
   title: "ocp4-stig for hosted clusters (CP rules disabled)"
@@ -120,6 +124,10 @@ spec:
       rationale: Control-plane rule; hosted CPE detection broken (init-container vs containers OVAL mismatch), disabled to replicate ocp4-on-hypershift-hosted gating
     - name: ocp4-oauth-provider-selection-set
       rationale: Control-plane rule; hosted CPE detection broken (init-container vs containers OVAL mismatch), disabled to replicate ocp4-on-hypershift-hosted gating
+    - name: ocp4-oauth-or-oauthclient-token-maxage
+      rationale: Split for HCP - the server half reads this guest's oauths/cluster, which is not reconciled from HostedCluster.spec; server half is assessed by mgmt CEL hcp-oauth-token-maxage, client half by in-hosted CEL hcp-oauthclient-token-maxage (hosted/tp-cel.yaml)
+    - name: ocp4-oauth-or-oauthclient-inactivity-timeout
+      rationale: Split for HCP - the server half reads this guest's oauths/cluster, which is not reconciled from HostedCluster.spec; server half is assessed by mgmt CEL hcp-oauth-inactivity-timeout, client half by in-hosted CEL hcp-oauthclient-inactivity-timeout (hosted/tp-cel.yaml)
 
 ---
 apiVersion: compliance.openshift.io/v1alpha1
@@ -127,6 +135,8 @@ kind: TailoredProfile
 metadata:
   name: hosted-high-tailored
   namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
 spec:
   extends: ocp4-high
   title: "ocp4-high for hosted clusters (CP rules disabled)"
@@ -240,3 +250,7 @@ spec:
       rationale: Control-plane rule; hosted CPE detection broken (init-container vs containers OVAL mismatch), disabled to replicate ocp4-on-hypershift-hosted gating
     - name: ocp4-openshift-api-server-audit-log-path
       rationale: Control-plane rule; hosted CPE detection broken (init-container vs containers OVAL mismatch), disabled to replicate ocp4-on-hypershift-hosted gating
+    - name: ocp4-oauth-or-oauthclient-token-maxage
+      rationale: Split for HCP - the server half reads this guest's oauths/cluster, which is not reconciled from HostedCluster.spec; server half is assessed by mgmt CEL hcp-oauth-token-maxage, client half by in-hosted CEL hcp-oauthclient-token-maxage (hosted/tp-cel.yaml)
+    - name: ocp4-oauth-or-oauthclient-inactivity-timeout
+      rationale: Split for HCP - the server half reads this guest's oauths/cluster, which is not reconciled from HostedCluster.spec; server half is assessed by mgmt CEL hcp-oauth-inactivity-timeout, client half by in-hosted CEL hcp-oauthclient-inactivity-timeout (hosted/tp-cel.yaml)

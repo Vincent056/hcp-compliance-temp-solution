@@ -3,6 +3,8 @@ kind: TailoredProfile
 metadata:
   name: hypershift-high-hcp-demo
   namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
 spec:
   description: Management-cluster tailored scan of HostedCluster hcp-demo with wrong-target rules disabled
   extends: ocp4-high

@@ -1,13 +1,31 @@
+apiVersion: compliance.openshift.io/v1alpha1
+kind: ScanSettingBinding
+metadata:
+  name: hypershift-cis
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+profiles:
+- apiGroup: compliance.openshift.io/v1alpha1
+  kind: TailoredProfile
+  name: hypershift-cis-hcp-demo
+settingsRef:
+  apiGroup: compliance.openshift.io/v1alpha1
+  kind: ScanSetting
+  name: default
+---
 # ScanSettingBindings for the three temp-solution scans (CIS binding is in ssb.yaml)
 apiVersion: compliance.openshift.io/v1alpha1
 kind: ScanSettingBinding
 metadata:
-  name: hcp-cel-workarounds
+  name: hcp-cel-hcp-demo
   namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
 profiles:
 - apiGroup: compliance.openshift.io/v1alpha1
   kind: TailoredProfile
-  name: hcp-cel-workarounds
+  name: hcp-cel-hcp-demo
 settingsRef:
   apiGroup: compliance.openshift.io/v1alpha1
   kind: ScanSetting
@@ -18,6 +36,8 @@ kind: ScanSettingBinding
 metadata:
   name: hypershift-stig
   namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
 profiles:
 - apiGroup: compliance.openshift.io/v1alpha1
   kind: TailoredProfile
@@ -32,6 +52,8 @@ kind: ScanSettingBinding
 metadata:
   name: hypershift-high
   namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
 profiles:
 - apiGroup: compliance.openshift.io/v1alpha1
   kind: TailoredProfile

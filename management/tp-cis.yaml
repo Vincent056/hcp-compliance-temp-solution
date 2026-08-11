@@ -1,0 +1,39 @@
+apiVersion: compliance.openshift.io/v1alpha1
+kind: TailoredProfile
+metadata:
+  name: hypershift-cis-hcp-demo
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  extends: ocp4-cis
+  title: CIS scan of hosted control plane hcp-demo
+  description: Management-cluster scan targeting HostedCluster hcp-demo
+  setValues:
+    - name: ocp4-hypershift-cluster
+      rationale: This value is used for HyperShift version detection
+      value: hcp-demo
+    - name: ocp4-hypershift-namespace-prefix
+      rationale: This value is used for HyperShift control plane namespace detection
+      value: clusters
+  disableRules:
+    - name: ocp4-etcd-cert-file
+      rationale: False positive on HCP 4.21 - etcd uses ETCD_* env vars; replaced by CustomRule hcp-etcd-cert-file
+    - name: ocp4-etcd-key-file
+      rationale: Replaced by CustomRule hcp-etcd-key-file
+    - name: ocp4-etcd-client-cert-auth
+      rationale: Replaced by CustomRule hcp-etcd-client-cert-auth
+    - name: ocp4-etcd-peer-cert-file
+      rationale: Replaced by CustomRule hcp-etcd-peer-cert-file
+    - name: ocp4-etcd-peer-key-file
+      rationale: Replaced by CustomRule hcp-etcd-peer-key-file
+    - name: ocp4-etcd-peer-client-cert-auth
+      rationale: Replaced by CustomRule hcp-etcd-peer-client-cert-auth
+    - name: ocp4-audit-profile-set
+      rationale: 'Wrong-target: reads management cluster apiservers/cluster; covered by CustomRule hcp-audit-profile'
+    - name: ocp4-ingress-controller-tls-cipher-suites
+      rationale: 'Wrong-target: reads management cluster default IngressController'
+    - name: ocp4-ocp-allowed-registries
+      rationale: 'Wrong-target: reads management cluster images/cluster'
+    - name: ocp4-ocp-allowed-registries-for-import
+      rationale: 'Wrong-target: reads management cluster images/cluster'

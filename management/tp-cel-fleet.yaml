@@ -1,0 +1,46 @@
+# Fleet-wide gate TailoredProfile: one scan over EVERY HostedCluster (no selector,
+# no setValues). Complement to the per-cluster instances (tp-cel.yaml).
+apiVersion: compliance.openshift.io/v1alpha1
+kind: TailoredProfile
+metadata:
+  name: hcp-cel-fleet
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: HCP fleet-wide gate (all hosted clusters, one scan)
+  description: >-
+    Fleet-wide CustomRules gating every HostedCluster on this management
+    cluster - any violating cluster flips the gate to FAIL. For per-cluster
+    attribution use the per-cluster TailoredProfile instances (tp-cel.yaml).
+  enableRules:
+    - {kind: CustomRule, name: hcp-fleet-etcd-cert-file, rationale: fleet gate}
+    - {kind: CustomRule, name: hcp-fleet-etcd-key-file, rationale: fleet gate}
+    - {kind: CustomRule, name: hcp-fleet-etcd-client-cert-auth, rationale: fleet gate}
+    - {kind: CustomRule, name: hcp-fleet-etcd-peer-cert-file, rationale: fleet gate}
+    - {kind: CustomRule, name: hcp-fleet-etcd-peer-key-file, rationale: fleet gate}
+    - {kind: CustomRule, name: hcp-fleet-etcd-peer-client-cert-auth, rationale: fleet gate}
+    - {kind: CustomRule, name: hcp-fleet-fips-enabled, rationale: fleet gate}
+    - {kind: CustomRule, name: hcp-fleet-etcd-secret-encryption, rationale: fleet gate}
+    - {kind: CustomRule, name: hcp-fleet-audit-profile, rationale: fleet gate}
+    - {kind: CustomRule, name: hcp-fleet-api-tls-security-profile, rationale: fleet gate}
+    - {kind: CustomRule, name: hcp-fleet-oauth-token-maxage, rationale: fleet gate}
+    - {kind: CustomRule, name: hcp-fleet-oauth-inactivity-timeout, rationale: fleet gate}
+    - {kind: CustomRule, name: hcp-fleet-audit-webhook, rationale: fleet gate}
+    - {kind: CustomRule, name: hcp-fleet-nodepool-config, rationale: fleet gate}
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: ScanSettingBinding
+metadata:
+  name: hcp-cel-fleet
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+profiles:
+  - apiGroup: compliance.openshift.io/v1alpha1
+    kind: TailoredProfile
+    name: hcp-cel-fleet
+settingsRef:
+  apiGroup: compliance.openshift.io/v1alpha1
+  kind: ScanSetting
+  name: default

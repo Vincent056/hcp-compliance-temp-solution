@@ -6,6 +6,7 @@ metadata:
   labels:
     openshift.io/cluster-monitoring: "true"
     pod-security.kubernetes.io/enforce: privileged
+    app.kubernetes.io/part-of: hcp-temp-compliance
   name: openshift-compliance
 ---
 apiVersion: operators.coreos.com/v1
@@ -13,6 +14,8 @@ kind: OperatorGroup
 metadata:
   name: compliance-operator
   namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
 spec:
   targetNamespaces:
   - openshift-compliance
@@ -22,6 +25,8 @@ kind: Subscription
 metadata:
   name: compliance-operator
   namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
 spec:
   channel: stable
   name: compliance-operator

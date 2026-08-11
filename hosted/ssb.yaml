@@ -3,6 +3,8 @@ kind: ScanSettingBinding
 metadata:
   name: hosted-platform-tailored
   namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
 profiles:
 - apiGroup: compliance.openshift.io/v1alpha1
   kind: TailoredProfile
@@ -13,6 +15,22 @@ profiles:
 - apiGroup: compliance.openshift.io/v1alpha1
   kind: TailoredProfile
   name: hosted-high-tailored
+settingsRef:
+  apiGroup: compliance.openshift.io/v1alpha1
+  kind: ScanSetting
+  name: default
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: ScanSettingBinding
+metadata:
+  name: hosted-cel-oauthclient
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+profiles:
+  - apiGroup: compliance.openshift.io/v1alpha1
+    kind: TailoredProfile
+    name: hosted-cel-oauthclient
 settingsRef:
   apiGroup: compliance.openshift.io/v1alpha1
   kind: ScanSetting

@@ -1,8 +1,12 @@
 # Reaching STIG, CIS, and NIST 800-53 High Compliance for Self-Managed Hosted Control Planes
 
-**Docs:** [Solution README](../README.md) · [Rule Coverage Matrix](../RULE_COVERAGE_MATRIX.md) · [Scan Mechanics Guide](HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md) · [Strategy & Gap Analysis](HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) · [Validation Report](HCP_SCAN_VALIDATION_REPORT.md)
+**Docs:** [README](../README.md) · [Runbook](../RUNBOOK.md) · [Coverage](../COVERAGE.md) · [Design](../DESIGN.md) · [Validation](../VALIDATION.md) · [Rule Matrix](../RULE_COVERAGE_MATRIX.md) · [Background: Scan Mechanics](HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md) · [Background: Strategy](HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) · [Background: First Validation](HCP_SCAN_VALIDATION_REPORT.md)
 
 ## TL;DR
+
+*(Historical snapshot from the 2026-07-31 analysis. The deployable solution - and the
+current per-cluster CEL selector mechanics, which supersede the namespace-baked rules
+described here - is the [Solution README](../README.md).)*
 
 The strategy document: how to reach CIS, STIG, and NIST High for hosted clusters
 using five layers (in-hosted platform scans, in-hosted node scans, management
@@ -516,8 +520,12 @@ any other scan and are aggregated into the same reporting pipeline.
    webhook target and the management cluster's log forwarding, outside any profile's
    automated reach today.
 4. **FileIntegrity (AIDE).** `file_integrity_*` rules are `not ocp4-on-hypershift` —
-   auto-N/A on the management tailored scan. The File Integrity Operator can still be
-   installed separately on both management and hosted clusters; do so and attest.
+   auto-N/A on the management tailored scan. The File Integrity Operator CAN be
+   installed on the management cluster (its AIDE then covers the nodes that host the
+   control planes) - do so and attest. It CANNOT currently be installed on hosted
+   clusters (its deployment requires control-plane nodes, which hosted clusters do
+   not have); record worker-node file-integrity monitoring for hosted clusters as a
+   gap/attestation item until FIO supports masterless topologies.
 5. **Manual rules stay manual.** ~21 (CIS) / 11 (STIG) / 25 (High) platform rules are
    MANUAL by design (RBAC judgment calls, SCC usage review, secrets management
    practice). They must be performed against the *hosted* cluster; disabling them in

@@ -1,16 +1,25 @@
 # Temporary Compliance Solution for Hosted Control Planes: CIS + STIG + NIST 800-53 High
 
-**Docs:** [Solution README](README.md) · [Rule Coverage Matrix](RULE_COVERAGE_MATRIX.md) · [Scan Mechanics Guide](docs-background/HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md) · [Strategy & Gap Analysis](docs-background/HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) · [Validation Report](docs-background/HCP_SCAN_VALIDATION_REPORT.md)
+**Docs:** [README](README.md) · [Runbook](RUNBOOK.md) · [Coverage](COVERAGE.md) · [Design](DESIGN.md) · [Validation](VALIDATION.md) · [Rule Matrix](RULE_COVERAGE_MATRIX.md) · [Background: Scan Mechanics](docs-background/HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md) · [Background: Strategy](docs-background/HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) · [Background: First Validation](docs-background/HCP_SCAN_VALIDATION_REPORT.md)
 
 
-**Status: VALIDATED end-to-end twice.** Round 1 (2026-07-31): OCP 4.21.0 nightly
-management cluster, CO **v1.9.1**, MCE **v2.17.1**, HostedCluster `hcp-demo`
-(none-platform) + AWS HostedCluster `hcp-aws` (4.20.32, 2 workers) - since torn
-down. Round 2 (2026-08-10, section 8): OCP **4.21.28 GA** management cluster +
-real `hcp-demo` HostedCluster - all four profiles reproduced the baselines
-identically, and all 18 CEL rules gained celctl fixture matrices (80/80).
-Scan-only throughout: no remediations were applied; every result is preserved in
-these docs and reproducible from the manifests.
+**Status: VALIDATED end-to-end four times** (full evidence log: [`VALIDATION.md`](VALIDATION.md)):
+
+- **Round 1** (2026-07-31): 4.21.0 nightly mgmt cluster + `hcp-demo` (none) +
+  `hcp-aws` (AWS, 2 workers, in-hosted layer) - baseline results; since torn down.
+- **Round 2** (2026-08-10): 4.21.28 GA + real `hcp-demo` - all four profiles
+  byte-identical to baseline; celctl matrices for every CEL rule.
+- **Round 3** (2026-08-10/11): fresh GA cluster, reorganized manifests, OAuth
+  OR rules split server/client, hub+hosted audit-error alert + remediation - all
+  proven live on the real guest.
+- **Round 4** (2026-08-11): NATIVE per-TP `setValues` delivery via Rule CRs +
+  SECOND HostedCluster - two TPs scanned two clusters CONCURRENTLY with one rule
+  set (demo 9P/6F vs demo2 10P/5F), fleet gate validated, CIS/STIG/High baselines
+  reproduced for BOTH clusters. `hcp-demo` + `hcp-demo2` left running.
+
+Rounds 1-2 were scan-only; rounds 3-4 additionally validated targeted remediations
+live (guest audit-error alert, per-client OAuth overrides, demo2 `tokenConfig`) -
+each FAIL->fix->PASS transition is recorded in [`VALIDATION.md`](VALIDATION.md).
 
 ## Background in 60 seconds
 
@@ -35,8 +44,9 @@ changes**, by combining four scan layers (all validated live in this repo):
    (one set per hosted cluster, per the official procedure:
    [Configuring the hosted control planes management cluster](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#co-hcp-mgmt-config_compliance-operator-scans))
    cover the hosted control-plane configuration.
-2. **CEL CustomRules on the mgmt cluster** - replace the 6 etcd false-positive rules
-   and check the settings whose source of truth is `HostedCluster.spec`
+2. **CEL rules on the mgmt cluster** (shipped as Rule CRs, per-cluster via
+   TailoredProfile `setValues` - [`DESIGN.md`](DESIGN.md)) - replace the 6 etcd false-positive
+   rules and check the settings whose source of truth is `HostedCluster.spec`
    (FIPS, etcd encryption, audit profile, TLS profile, OAuth token policy, webhook).
 3. **In-hosted scans** - CO installed inside each hosted cluster following the
    documented install procedure (note: official in-hosted support currently covers
@@ -46,7 +56,49 @@ changes**, by combining four scan layers (all validated live in this repo):
    disable the control-plane rules; covers all in-cluster checks and node profiles.
 4. **Mgmt self-scans + manual attestations** complete the picture.
 
-### Coverage / gap metrics (platform profiles, live-validated)
+## Documentation map
+
+- [`RUNBOOK.md`](RUNBOOK.md) — how to launch every scan (management + in-hosted),
+  read the results, manage/uninstall the objects, and remediate the standing FAILs.
+- [`COVERAGE.md`](COVERAGE.md) — per-benchmark dispositions: what covers each
+  CIS/STIG/High rule and the combined coverage numbers.
+- [`DESIGN.md`](DESIGN.md) — how per-cluster CEL selection works (native
+  `setValues` delivery via Rule CRs), every alternative evaluated and why it was
+  rejected, and fleet-scale operations.
+- [`VALIDATION.md`](VALIDATION.md) — the full evidence log across all four
+  validation rounds, bugs found, and the in-hosted layer results.
+- [`RULE_COVERAGE_MATRIX.md`](RULE_COVERAGE_MATRIX.md) — per-rule live results
+  from both scan locations for every platform rule.
+- `docs-background/` — historical snapshots from the 2026-07-31 round 1:
+  [scan mechanics](docs-background/HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md),
+  [strategy & gap analysis](docs-background/HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md),
+  [first validation report](docs-background/HCP_SCAN_VALIDATION_REPORT.md).
+
+## Official support boundary (read this before an audit)
+
+Per the OpenShift documentation (Supported compliance profiles): on hosted
+control plane MANAGEMENT clusters, only `ocp4-cis` and `ocp4-pci-dss` are
+supported; official in-hosted support covers the NODE profiles
+(`ocp4-{cis,stig,high}-node`, `rhcos4-*` - ROSA HCP is listed as a supported
+platform for them). Mapped onto this package:
+
+| Layer | Support status |
+|---|---|
+| `hypershift-cis-<cluster>` mgmt scans | **Supported surface** - extends `ocp4-cis` via the documented management-cluster procedure (TailoredProfile + HyperShift variables) |
+| In-hosted node scans (`*-node`, `rhcos4-*`) | **Supported surface** for all three benchmarks |
+| `hypershift-stig/high-<cluster>` mgmt scans | Temporary: validated 4x, but ocp4-stig/ocp4-high are NOT in the supported set for HCP management clusters - treat as compensating automated evidence |
+| In-hosted PLATFORM scans (`hosted-*-tailored`) | Temporary: official in-hosted scope is node profiles only (CMP-4521) |
+| CEL rules (per-cluster + fleet) | Temporary: user-defined checks; provenance per rule in the matrix |
+
+For the assessor: compliance is determined by an authorized auditor (QSA/JAB),
+not by profile support status - this package produces evidence with rule-by-rule
+provenance ([`RULE_COVERAGE_MATRIX.md`](RULE_COVERAGE_MATRIX.md)), clearly
+separating supported-profile results from temporary-layer results. Roadmap to
+fully supported: an RFE for official `ocp4-stig`/`ocp4-high` on HCP management
+clusters (in preparation), CMP-4550 for CEL selector support, and
+CMP-4520/21/23/24 for the individual content gaps.
+
+## Coverage / gap metrics (platform profiles, live-validated)
 
 | | CIS (94 rules) | STIG (48 rules) | High (134 rules) |
 |---|---|---|---|
@@ -63,19 +115,20 @@ one authoritative source except the two `no-unsupported-config-overrides` rules*
 (architecturally N/A on HCP - record in the SSP). The weakest single layer is the
 STIG mgmt scan (only 6 aware rules); the in-hosted + CEL layers close most of it.
 
-### Findings discovered and filed during validation
+## Findings discovered and filed during validation
 
 | Jira | Finding |
 |---|---|
 | CMP-4520 (Bug, Major) | 6 etcd rules false-FAIL on HCP - etcd config moved to `ETCD_*` env vars |
-| CMP-4521 (Bug, Major) | `ocp4-on-hypershift-hosted` CPE never fires (initContainer vs `.spec.containers` OVAL mismatch), so control-plane rules false-FAIL if platform profiles are run inside a hosted cluster. Current official in-hosted support covers node profiles only, so no supported flow hits this — but this package's in-hosted tailored profiles (`tp-in-hosted.yaml`) work around it and make in-hosted platform scans usable. |
+| CMP-4521 (Bug, Major) | `ocp4-on-hypershift-hosted` CPE never fires (initContainer vs `.spec.containers` OVAL mismatch), so control-plane rules false-FAIL if platform profiles are run inside a hosted cluster. Current official in-hosted support covers node profiles only, so no supported flow hits this — but this package's in-hosted tailored profiles (`hosted/tp.yaml`) work around it and make in-hosted platform scans usable. |
 | CMP-4522 (Bug, Major) | CSV master `nodeSelector` blocks scheduling on hosted clusters — the Subscription override is ALREADY the documented install procedure ([Installing the Compliance Operator on Hypershift hosted control planes](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#installing-compliance-operator-hcp_compliance-operator-installation), Technology Preview); ticket to be closed/rescoped |
 | CMP-4523 (Story) | Collector SA lacks `nodepools` RBAC for CEL inputs |
 | CMP-4524 (Story) | Extend HyperShift awareness to the HostedCluster-derivable rules |
+| CMP-4550 (Bug, Major, target 1.10.0) | TailoredProfile `setValues` silently ignored by CEL rules + validation asymmetry - the fix migrates this repo's Rule-CR selector back to admission-validated CustomRules ([`DESIGN.md`](DESIGN.md)) |
 
-Full per-rule detail: [`RULE_COVERAGE_MATRIX.md`](RULE_COVERAGE_MATRIX.md). Multi-cluster fleets: section 7.
+Full per-rule detail: [`RULE_COVERAGE_MATRIX.md`](RULE_COVERAGE_MATRIX.md). Multi-cluster fleets: [`DESIGN.md`](DESIGN.md).
 
-### Glossary (read this if any term above is unfamiliar)
+## Glossary (read this if any term above is unfamiliar)
 
 | Term | Meaning |
 |---|---|
@@ -87,7 +140,7 @@ Full per-rule detail: [`RULE_COVERAGE_MATRIX.md`](RULE_COVERAGE_MATRIX.md). Mult
 | TailoredProfile | CO object that customizes a profile: set variables, enable/disable rules |
 | ScanSettingBinding (SSB) | CO object that binds profiles to scan settings and starts scanning |
 | ComplianceCheckResult | Per-rule scan result object: PASS / FAIL / MANUAL / NOT-APPLICABLE |
-| CEL CustomRule | User-defined CO check written in Common Expression Language against live API objects |
+| CEL rule (CustomRule / Rule CR) | User-defined CO check written in Common Expression Language against live API objects |
 | HyperShift-aware (dual-path) rule | Content rule whose fetch path switches to the hosted CP namespace when the HyperShift variables are set |
 | Wrong-target rule | Rule that, in a management scan, reads the management cluster's own config and so reports on the wrong cluster |
 | CPE / platform | The content's applicability mechanism - decides which rules run on which cluster type |
@@ -101,391 +154,29 @@ DISA STIG, and NIST 800-53 High benchmarks for a hosted cluster **without any
 ComplianceAsCode content changes**, using only supported Compliance Operator
 primitives: TailoredProfiles, `disableRules`, and CEL CustomRules.
 
-Manifests in this directory (all applied and validated on the live cluster):
+Manifests (all applied and validated live), organized by WHERE they are applied:
 
-| File | Purpose |
-|---|---|
-| `customrules.yaml` | 14 CEL CustomRules, PER-CLUSTER via the ocp4-hypershift-* Variable selectors: 6 etcd env-var checks (replace false positives) + 8 HostedCluster/NodePool gap rules |
-| `tp-cis-with-disables.yaml` | CIS TailoredProfile: hypershift variables + 10 `disableRules` |
-| `tp-stig.yaml` | STIG TailoredProfile: hypershift variables + 27 `disableRules` |
-| `tp-high.yaml` | High TailoredProfile: hypershift variables + 51 `disableRules` |
-| `tp-cel.yaml` | TailoredProfile binding the 14 CustomRules (CEL scans cannot mix with OpenSCAP); target cluster chosen by the Variable selector, not per-TP `setValues` — section 7.2 |
-| `ssb.yaml`, `ssb-all.yaml` | ScanSettingBindings for all four scans |
-| `rbac-hypershift-read.yaml` | Read grant on `hostedclusters`/`nodepools` for the `api-resource-collector` SA (required for the CEL inputs; without it the NodePool rule returns ERROR — reproduced live) |
-| `hostedcluster.yaml` | The none-platform HostedCluster used for validation (SingleReplica, guest OLM catalogs) |
+| File | Applied on | Purpose |
+|---|---|---|
+| `management/customrules.yaml` | management cluster | 2 dash-free selector Variables + 15 CEL rules as directly-created `Rule` CRs, PER-CLUSTER via `setValues` in each enabling TailoredProfile (NATIVE delivery, [`DESIGN.md`](DESIGN.md)): 6 etcd env-var checks (replace false positives) + 8 HostedCluster/NodePool gap rules + the `hcp-selector-valid` sentinel |
+| `management/deploy.sh` | management cluster | Applies customrules.yaml and sets the ownerReferences (to the ocp4 ProfileBundle) that the TailoredProfile controller requires on Rules and Variables |
+| `management/customrules-fleet.yaml` + `tp-cel-fleet.yaml` | management cluster | OPTIONAL fleet-wide gate: 14 CustomRules (admission-validated; selector-free) evaluating EVERY HostedCluster in one scan - any violating cluster FAILs the gate; CP namespaces derived from the HostedCluster objects (no prefix baked; prefix-scoped variants would be customrules-fleet-<prefix>.yaml) |
+| `management/rbac-hypershift-read.yaml` | management cluster | Read grant on `hostedclusters`/`nodepools` for the `api-resource-collector` SA (required for the CEL inputs; without it the NodePool rule returns ERROR — reproduced live) |
+| `management/tp-cel.yaml` | management cluster | Per-hosted-cluster TailoredProfile instance (the `hcp-demo` one; copy per cluster) binding the 15 Rules; the target is this TP's OWN `setValues`, delivered natively to the expressions — multiple instances scan different clusters CONCURRENTLY ([`DESIGN.md`](DESIGN.md)) |
+| `management/tp-cis.yaml` / `tp-stig.yaml` / `tp-high.yaml` | management cluster | Per-profile TailoredProfiles: hypershift `setValues` + 10 / 27 / 51 `disableRules` |
+| `management/ssb.yaml` | management cluster | ScanSettingBindings for all four management scans |
+| `hosted/co-install.yaml` | each hosted cluster | CO install with the documented Subscription overrides (worker `nodeSelector` + `PLATFORM=HyperShift`) |
+| `hosted/customrules.yaml` | each hosted cluster | 3 CEL CustomRules: the two CLIENT halves of the split OAuth OR rules (`hcp-oauthclient-token-maxage`, `hcp-oauthclient-inactivity-timeout`) + the hub+hosted `hcp-audit-error-alert-exists` |
+| `hosted/tp.yaml` | each hosted cluster | `hosted-cis/stig/high-tailored`: control-plane rules disabled (46/6/56) incl. the split OAuth OR rules |
+| `hosted/tp-cel.yaml` + `hosted/ssb.yaml` | each hosted cluster | CEL TailoredProfile for the 3 in-hosted CustomRules + ScanSettingBindings |
+| `hosted/remediation-audit-errors.yaml` | each hosted cluster | Remediation: the audit-error alert missing from 4.21 guests ([`RUNBOOK.md`](RUNBOOK.md) remediations) |
+| `hostedcluster.yaml` | management cluster | The none-platform HostedCluster used for validation (parameterized: release image + base domain) |
 
-Per-hosted-cluster values to substitute: `hcp-demo` / `clusters` in the three OpenSCAP
-TailoredProfiles' `setValues`. The CEL CustomRules need NO per-cluster editing — they
-select their target via the `ocp4-hypershift-cluster` /
-`ocp4-hypershift-namespace-prefix` Variable CRs (patch the value; section 7.2).
+Per-hosted-cluster values to substitute: the cluster name / namespace prefix in the
+TailoredProfiles' `setValues`. The OpenSCAP TPs use the bundle variables
+(`ocp4-hypershift-*`); the CEL TailoredProfile uses the dash-free
+`hypershiftcluster` / `hypershiftprefix` Variables so the scanner can deliver each
+TP's values natively into the expressions ([`DESIGN.md`](DESIGN.md)). No bundle Variable CR is
+ever modified.
 
 ---
-
-## 1. Live validation results (all four scans DONE)
-
-| Scan | Results | Verdict on mechanism |
-|---|---|---|
-| `hypershift-cis-hcp-demo` (rescan with disables) | 77 checks: 49 PASS / 21 MANUAL / **7 FAIL** (was 17 FAIL before) | All 10 disabled rules absent; every remaining FAIL is a genuine hosted-cluster finding |
-| `hypershift-stig-hcp-demo` | 17 checks: 2 PASS / 11 MANUAL / 4 FAIL | Exactly the predicted shape (48 − 27 disabled − 4 auto-N/A); all 6 automated results come from the HyperShift-aware rules reading the HostedCluster |
-| `hypershift-high-hcp-demo` | 73 checks: 43 PASS / 23 MANUAL / 7 FAIL | Zero etcd false positives, zero wrong-target FAILs; all 7 FAILs genuine |
-| `hcp-cel-workarounds` | 14 checks: **8 PASS / 6 FAIL** | 14/14 match ground truth (see below) |
-
-CEL rule-by-rule vs ground truth:
-
-| CustomRule | Result | Ground truth |
-|---|---|---|
-| `hcp-etcd-cert-file`, `-key-file`, `-client-cert-auth`, `-peer-cert-file`, `-peer-key-file`, `-peer-client-cert-auth` | PASS x6 | Hosted etcd TLS is fully configured via `ETCD_*` env vars — the six OpenSCAP rules FAILed on the same pods (they only inspect args). Workaround proven. |
-| `hcp-api-tls-security-profile` | PASS | No `tlsSecurityProfile` set -> Intermediate default, compliant |
-| `hcp-nodepool-config` | PASS | Zero NodePools (vacuous; ERROR before the RBAC grant — apply `rbac-hypershift-read.yaml`) |
-| `hcp-fips-enabled` | FAIL | `spec.fips` unset — true finding |
-| `hcp-etcd-secret-encryption` | FAIL | `spec.secretEncryption` unset — true finding |
-| `hcp-audit-profile` | FAIL | No audit profile configured — true finding |
-| `hcp-oauth-token-maxage`, `hcp-oauth-inactivity-timeout` | FAIL | No OAuth tokenConfig — true findings |
-| `hcp-audit-webhook` | FAIL | No `spec.auditWebhook` — true finding |
-
-The remaining scan FAILs (CIS 7 / High 7 / STIG 4) are all accurate statements about
-`hcp-demo`: audit-log maxbackup=1/maxsize=10 in the hosted `kas-config` (below CIS
-thresholds), no etcd secret encryption, no IdP, no OAuth templates, no audit webhook.
-NON-COMPLIANT is the correct verdict for an unhardened cluster.
-
-## 2. Exactly what the solution scans, per benchmark (management + in-hosted combined)
-
-"Covered" below means: an automated result that truthfully describes the hosted
-cluster. The producing layer is named per row: mgmt tailored scan, CEL CustomRules,
-or the in-hosted tailored scan (all three validated live - sections 1 and 5).
-
-### 2.1 CIS (ocp4-cis platform profile: 94 rules)
-
-| Disposition | Count | Rules / notes |
-|---|---|---|
-| Covered — HyperShift-aware OpenSCAP rules | 47 | kube-apiserver/openshift-apiserver config (`kas-config`), etcd+KCM pod specs, HostedCluster OAuth/encryption, CP-namespace NetworkPolicies |
-| Covered — CEL replacements for false positives | 6 | the etcd TLS set (disabled in the TP, replaced 1:1 by `hcp-etcd-*`) |
-| Covered — CEL replacements for wrong-target rules | 4 | `audit-profile-set` + `audit-logging-enabled` -> `hcp-audit-profile`; `api-server-tls-security-profile-not-old`/`-custom-min-tls-version` -> `hcp-api-tls-security-profile` |
-| Correctly NOT-APPLICABLE | 4 | `kubeadmin-removed`, `configure-network-policies(-namespaces)`, `audit-log-forwarding-enabled` (webhook variant runs instead) |
-| Covered — in-hosted tailored scan (validated on hcp-aws, section 5) | 13 | `api-server-anonymous-auth`, `api-server-oauth/openshift-https-serving-cert`, `api-server/scheduler-profiling-protected-by-rbac` (x3), `rbac-debug-role-protects-pprof`, `scc-limit-container-allowed-capabilities`, `ingress-controller-tls-cipher-suites`, `ocp-*registries*` (x4) |
-| **Gap — no automated equivalent anywhere** | 2 | `api-server-(kube-)no-unsupported-config-overrides`: the operator CRs do not exist for hosted CPs. Compensating statement: HCP does not expose unsupportedConfigOverrides to tenants at all. |
-| Manual attestation (unchanged by HCP) | 21 | rbac_*, scc_* judgment rules, secrets management, namespace hygiene — perform against the hosted cluster |
-
-Net (combined): **64 of 66 automatable platform rules (97%) produce truthful
-hosted-cluster results — 41 mgmt-aware + 6 etcd-CEL + 4 wrong-target-CEL + 13
-in-hosted. The only hard gap is the 2 `no-unsupported-config-overrides` rules
-(architectural SSP statement). Management side alone covers 51 of 66 (77%).**
-
-**Node dimension — `ocp4-cis-node` (~103 rules):** runs inside the hosted cluster via
-the worker-role node scans (the HyperShift platform default). Master-node rules are
-structurally out of scope (hosted clusters have no masters; the control-plane
-file-level story is covered by the compensating controls in the analysis doc).
-Live result on hcp-aws 4.20.32 workers: `ocp4-cis-node-worker` **57 PASS / 0 FAIL —
-COMPLIANT out of the box**.
-
-### 2.2 STIG (ocp4-stig platform profile: 48 rules; full benchmark 169)
-
-| Disposition | Count | Rules / notes |
-|---|---|---|
-| Covered — HyperShift-aware | 6 | `api-server-encryption-provider-cipher`, `idp-is-configured`, `ocp-idp-no-htpasswd`, `ocp-no-ldap-insecure`, `oauth-login-template-set`, `oauth-provider-selection-set` |
-| Covered — CEL gap rules | 6 | `fips-mode-enabled-on-all-nodes` -> `hcp-fips-enabled` (authoritative `spec.fips`); `api-server-tls-security-profile` -> `hcp-api-tls-security-profile`; `audit-profile-set` -> `hcp-audit-profile`; `oauth-or-oauthclient-token-maxage`/`-inactivity-timeout` -> CEL pair; `audit-log-forwarding-uses-tls` -> `hcp-audit-webhook` (existence; TLS of the webhook target needs manual attestation) |
-| Correctly NOT-APPLICABLE | 4 | same as CIS |
-| Covered — in-hosted tailored scan (validated, section 5) | 18 | `classification-banner`, `openshift-motd-exists`, `oauth-logout-url-set`, `ocp-*registries*` (x4), `image-pruner-active`, `imagestream-sets-schedule`, `project-config-and-template-network-policy`/`-resource-quota`, `resource-requests-quota-per-project`, `routes-rate-limit`, `ingress-controller-tls-security-profile`, `cluster-logging-operator-exist`, `cluster-version-operator-exists`/`-verify-integrity`, `container-security-operator-exists` |
-| Covered — other layers | 3 | `audit-error-alert-exists` (mgmt self-scan, Layer D), `scansettingbinding-exists` + `scansettings-have-schedule` (satisfied by the validated in-hosted CO install) |
-| Manual attestation | 11 | rbac_logging_* / rbac_least_privilege / scc_limit_* |
-
-Net (combined): **all 33 automatable platform rules (100%) covered — 6 mgmt-aware +
-6 CEL + 18 in-hosted + 3 via other layers.** Management side alone covers only
-12 of 33 (36%) because just 6 rules were ever made HyperShift-aware — the in-hosted
-and CEL layers are what make STIG whole.
-
-**Node/OS dimension — `ocp4-stig-node` + `rhcos4-stig` (121 rules):** live results:
-`ocp4-stig-node-worker` 2 PASS / 1 FAIL; `rhcos4-stig-worker` 17 PASS / 1 MANUAL /
-98 FAIL. The OS-level FAILs are the node-hardening backlog — remediations must be
-delivered through `NodePool.spec.config` MachineConfigs on the management cluster,
-since hosted clusters run no MCO (scan-only in this validation).
-
-### 2.3 NIST 800-53 High (ocp4-high platform profile: 134 rules; full 257)
-
-| Disposition | Count | Rules / notes |
-|---|---|---|
-| Covered — HyperShift-aware (inherited from CIS + OAuth/IdP set) | 57 | validated live: audit-log sizes, admission plugins, etcd client/serving certs of KAS, encryption, IdP, webhook forwarding, CP NetworkPolicies |
-| Covered — CEL | 15 | 6 etcd + `api-server-tls-security-profile(+-not-old/-custom)` + `audit-logging-enabled`/`audit-profile-set` + `fips` + OAuth max-age/inactivity + audit webhook |
-| Correctly NOT-APPLICABLE | 9 | CIS 4 + `file-integrity-*` (2, `not ocp4-on-hypershift`) + SDN-gated proxy-kubeconfig (3, OVN) |
-| Covered — in-hosted tailored scan (validated, section 5) | ~30 | the CIS-13 plus: `banner-or-login-template-set`, `default-ingress-ca-replaced`, `ingress-controller-certificate`/`-tls-security-profile`, `resource-requests-limits-in-daemonset/deployment/statefulset`, `resource-requests-quota`, `route-ip-whitelist`, `routes-protected-by-tls`, `routes-rate-limit`, `api-server-api-priority-flowschema-catch-all`, `gitops-operator-exists`, `cluster-logging-operator-exist`, `cluster-version-operator-exists`/`-verify-integrity`, `compliance-notification-enabled`, `scansettingbinding-exists` |
-| Gap/other layers | 4 | `no-unsupported-config-overrides` x2 (architectural, as CIS); `audit-error-alert-exists` (mgmt); `cluster-wide-proxy-set` (CEL rule available in [`HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md`](docs-background/HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) section 7.2(h), not deployed here — no proxy in this environment) |
-| Manual attestation | 25 | superset of CIS manual rules |
-
-Net (combined): **~98 of 100 automatable platform rules (98%) covered — 51
-mgmt-aware + 15 CEL + ~30 in-hosted + 2 via other layers; the 2
-`no-unsupported-config-overrides` rules remain SSP statements.** Management side
-alone covers 72 of 100 (72%).
-
-**Node dimension — `ocp4-high-node` + `rhcos4-high` (123 rules):** live results:
-`ocp4-high-node-worker` 61 PASS / 3 MANUAL / 1 FAIL; `rhcos4-high-worker` 40 PASS /
-4 MANUAL / 194 FAIL (unhardened RHCOS against the NIST High OS baseline — the same
-NodePool-delivered hardening workload as STIG).
-
-### 2.4 How the layers divide the work (all validated)
-
-1. **Compliance Operator inside each hosted cluster** (VALIDATED on `hcp-aws`,
-   section 5: OLM install with the worker nodeSelector override + in-hosted tailored
-   profiles) — provides every "in-hosted" row above (13 CIS / 18 STIG / ~30 High),
-   plus all node profiles. Caveat: in-hosted config CRs are mirrors of
-   `HostedCluster.spec.configuration`; where they disagree, the CEL rules against the
-   HostedCluster are authoritative.
-2. **Scan the management cluster itself** with plain `ocp4-cis`/`ocp4-stig`/
-   `ocp4-high` + node profiles — it hosts the control planes and owns
-   `audit-error-alert-exists`-class responsibilities.
-3. **Manual attestations** (21/11/25 rules) are unchanged by HyperShift — perform
-   them against the hosted cluster.
-4. The two `no-unsupported-config-overrides` rules should be recorded as
-   architecturally N/A for HCP in the SSP (tenants cannot set overrides at all).
-
-## 3. Bugs and sharp edges found during validation
-
-1. **etcd rules false-positive on HCP 4.21** (`etcd-cert-file` + 5 siblings): hosted
-   etcd is configured via `ETCD_*` env vars, the content only inspects pod args.
-   This package disables the six rules and replaces them 1:1 with CEL; the upstream
-   content fix is tracked as CMP-4520 (evidence in
-   [`HCP_SCAN_VALIDATION_REPORT.md`](docs-background/HCP_SCAN_VALIDATION_REPORT.md) section 5).
-2. **RBAC**: `api-resource-collector` can read `hostedclusters` out of the box (they
-   aggregate into cluster-reader) but NOT `nodepools` — the NodePool CEL rule
-   returned ERROR with a forbidden message until `rbac-hypershift-read.yaml` was
-   applied. Reproduced and fixed live.
-3. **TailoredProfile requires `spec.description`** when creating STIG/High TPs — the
-   apply fails without it.
-4. CustomRule expressions are static — no substitution in the expression text —
-   which originally forced baking the CP namespace (`clusters-hcp-demo`) into the
-   etcd rules. Superseded: all 14 rules now read the target from the
-   `ocp4-hypershift-*` Variable CRs fetched as inputs (section 7.2).
-5. CI-environment HostedCluster hints (not compliance-related):
-   `controllerAvailabilityPolicy: SingleReplica` on <3-AZ management clusters,
-   `olmCatalogPlacement: guest` for nightly releases; both immutable.
-
-## 4. Related documents
-
-- [`HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md`](docs-background/HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md) — mechanism internals + full CIS/PCI rule
-  dispositions
-- [`HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md`](docs-background/HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) — the five-layer strategy and the CEL
-  rule catalog this package implements
-- [`HCP_SCAN_VALIDATION_REPORT.md`](docs-background/HCP_SCAN_VALIDATION_REPORT.md) — first validation run (CIS) and the etcd
-  false-positive evidence
-
-The validation ran on `ci-ln-b6zqd5k-76ef8.aws-4.ci.openshift.org` (an ephemeral CI
-cluster, since torn down); all results are preserved in these docs and the scans are
-reproducible from the manifests in this directory.
-
----
-
-## 5. In-hosted scan layer (validated on hcp-aws)
-
-An AWS-platform HostedCluster `hcp-aws` (4.20.32 GA, 2× m5.xlarge workers, created via
-MCE `hcp` CLI with `--control-plane-availability-policy SingleReplica`) was used to
-validate the "install the Compliance Operator inside each hosted cluster" layer.
-
-New manifests in this directory:
-
-| File | Purpose |
-|---|---|
-| `co-in-hosted.yaml` | OLM install of CO v1.9.1 inside the hosted cluster, matching the official documented procedure ([Installing the Compliance Operator on Hypershift hosted control planes](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#installing-compliance-operator-hcp_compliance-operator-installation), Technology Preview): `spec.config.env` `PLATFORM=HyperShift` + `spec.config.nodeSelector: {node-role.kubernetes.io/worker: ""}`. Without the overrides the operator pod stays Pending (CSV pins to masters; hosted clusters have none) — our validation independently confirmed the documented settings are load-bearing. |
-| `tp-in-hosted.yaml` | `hosted-cis-tailored` / `hosted-stig-tailored` / `hosted-high-tailored` — disable the control-plane rules (46 / 4 / 54) inside the hosted cluster |
-| `ssb-in-hosted.yaml`, `ssb-in-hosted-tailored.yaml` | node-profile bindings and tailored platform bindings |
-
-### Finding: the ocp4-on-hypershift-hosted CPE never fires (why the tailored profiles exist)
-
-With plain `ocp4-cis` inside the hosted cluster, 11+ control-plane rules RAN and
-false-FAILed (reading `openshift-kube-apiserver` etc. namespaces that do not exist).
-Root cause, confirmed in source: the operator passes `--platform=HyperShift` to the
-`api-resource-collector`, which is an **initContainer** of the platform scan pod
-(`pkg/controller/compliancescan/scan.go`, `addScannerInitContainer`), while the
-content's CPE check (`shared/applicability/oval/installed_app_is_ocp4.xml`,
-`object_hypershift_hosted`) inspects `.spec.containers[:].command[:]` only —
-initContainers are never examined. Same code on current master. Fix options (not
-applied per current plan): move the arg to a regular container, or extend the OVAL to
-initContainers. Until fixed, the tailored profiles replicate the CPE gating manually.
-
-### In-hosted validation results (all six + three tailored scans DONE)
-
-| Scan | Result | Notes |
-|---|---|---|
-| `ocp4-cis` (untailored) | 22 PASS / 21 MANUAL / 46 FAIL | demonstrates the CPE bug: ~38 false CP FAILs |
-| `hosted-cis-tailored` | 14 PASS / 21 MANUAL / 8 FAIL | CP rules absent; remaining FAILs genuine (kubeadmin present, registries unset, ingress ciphers default, netpol missing) |
-| `hosted-stig-tailored` | 14 PASS / 11 MANUAL / 19 FAIL | banner/MOTD/logout-url/project-template FAILs = real unhardened-cluster findings |
-| `hosted-high-tailored` | 28 PASS / 23 MANUAL / 24 FAIL | same pattern |
-| `ocp4-cis-node-worker` | 57 PASS — **COMPLIANT** | 4.20 workers pass CIS node checks out of the box |
-| `ocp4-stig-node-worker` | 2 PASS / 1 FAIL | kubelet STIG |
-| `rhcos4-stig-worker` | 17 PASS / 1 MANUAL / 98 FAIL | OS-level STIG on unhardened RHCOS — the node-hardening workload that NodePool config must address |
-| `ocp4-high-node-worker` | 61 PASS / 3 MANUAL / 1 FAIL | NIST High kubelet/node checks |
-| `rhcos4-high-worker` | 40 PASS / 4 MANUAL / 194 FAIL | NIST High OS baseline on unhardened RHCOS — same NodePool hardening backlog |
-
-Gap-rule recovery verified rule-by-rule: every rule the coverage matrix assigns to
-"Hosted scan" produced a genuine in-hosted result — `kubeadmin-removed` FAIL (true:
-fresh cluster), `ocp-allowed-registries` FAIL, `ingress-controller-tls-cipher-suites`
-FAIL, `api-server-anonymous-auth` PASS, `scc-limit-container-allowed-capabilities`
-PASS, `api-server-profiling-protected-by-rbac` PASS,
-`configure-network-policies-namespaces` FAIL, STIG `classification-banner` /
-`openshift-motd-exists` / `oauth-logout-url-set` FAIL, `image-pruner-active` PASS.
-
-[`RULE_COVERAGE_MATRIX.md`](RULE_COVERAGE_MATRIX.md) now carries live results from BOTH scan locations for every
-platform rule of all three profiles.
-
-### Environment notes for reproduction
-
-- MCE OIDC S3 secret (`hypershift-operator-oidc-provider-s3-credentials` in
-  `local-cluster` ns) must exist before creating AWS HostedClusters; the hcp CLI needs
-  `AWS_REGION` exported for its STS AssumeRole call.
-- `ValidAWSIdentityProvider=False WebIdentityErr` shortly after creation is IAM OIDC
-  eventual consistency; it resolved itself within ~5 minutes.
-- Both hosted clusters (`hcp-demo`, `hcp-aws`) were kept running for post-scan
-  inspection and have since been torn down (validation complete; results preserved
-  in these docs).
-
-## 6. Consolidated findings list (all validated live)
-
-1. etcd rules false-positive on HCP 4.21+ (env-var config) — CEL replacement shipped here. Filed: CMP-4520.
-2. `oauth_or_oauthclient_inactivity_timeout` and siblings not HyperShift-aware — CEL gap rules shipped here. Filed: CMP-4524.
-3. Downstream CSV master `nodeSelector` blocks OLM install on hosted clusters — the Subscription override (worker nodeSelector + PLATFORM env) is the officially documented install procedure ([Installing the Compliance Operator on Hypershift hosted control planes](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#installing-compliance-operator-hcp_compliance-operator-installation), Technology Preview); validated live. CMP-4522 filed before finding the docs — to be closed or rescoped to 'tolerate masterless topologies natively'.
-4. `ocp4-on-hypershift-hosted` CPE unreachable (initContainer vs `.spec.containers` OVAL mismatch) — affects platform profiles run in-hosted, which is beyond the current node-profiles-only support scope; this package's in-hosted tailored profiles are the workaround that makes those scans usable. Filed: CMP-4521.
-5. `api-resource-collector` lacks RBAC for `nodepools` (has `hostedclusters` via cluster-reader aggregation) — `rbac-hypershift-read.yaml` required for the NodePool CEL rule. Filed: CMP-4523.
-
-
-## 7. Scaling to multiple hosted clusters
-
-Everything in this package was validated against a single hosted cluster; with a fleet
-on one management cluster, each object falls into one of two categories:
-
-### 7.1 Per-hosted-cluster objects (instantiate N times)
-
-| Object | Why per-cluster | Naming convention |
-|---|---|---|
-| Mgmt TailoredProfiles (`tp-cis-with-disables`, `tp-stig`, `tp-high`) | The two variables (`ocp4-hypershift-cluster`, `ocp4-hypershift-namespace-prefix`) identify exactly ONE HostedCluster; a scan reads exactly one control-plane namespace | `hypershift-<profile>-<cluster>` (e.g. `hypershift-cis-payments-prod`) |
-| ScanSettingBindings for those TPs | One binding per TP | `hypershift-<profile>-<cluster>` |
-| In-hosted install + tailored profiles (`co-in-hosted.yaml`, `tp-in-hosted.yaml`, SSBs) | The Compliance Operator runs inside EACH hosted cluster | identical manifests per cluster |
-
-Generation is mechanical - every per-cluster manifest differs only in the cluster
-name/namespace strings. A 10-line loop over `oc get hostedcluster -A` output (sed on
-the name/prefix placeholders) produces the full set; keep the generated manifests in
-Git per cluster.
-
-### 7.2 CEL rules: per-cluster by selector (updated 2026-08-10)
-
-ALL 14 management-side CEL rules are now PER-CLUSTER via the variable-as-input
-pattern: each rule fetches the documented `ocp4-hypershift-cluster` /
-`ocp4-hypershift-namespace-prefix` Variable CRs as inputs and evaluates only the
-selected hosted cluster (HostedCluster by name+namespace; etcd pods and NodePools by
-the derived `<prefix>-<name>` namespace / `spec.clusterName`). One rule set serves
-the whole fleet - no per-cluster regeneration, including the etcd rules (previously
-namespace-baked).
-
-Select the cluster with:
-
-```
-oc patch variable ocp4-hypershift-cluster -n openshift-compliance \
-  --type merge -p '{"value":"<hosted-cluster-name>"}'
-```
-
-Fleet notes:
-
-- **One active selection at a time** (the selector is the Variable CR value; a
-  TailoredProfile's `setValues` does NOT affect input-fetched values). Scan clusters
-  sequentially by re-pointing the selector and rescanning, or create per-cluster
-  Variable CRs + rule copies for concurrent scanning. Per-TailoredProfile selection
-  via `setValues` bindings is the eventual UX but is blocked by two operator gaps
-  today: admission validation compiles CEL expressions with input declarations only
-  (variable references are rejected with UNDECLARED_REFERENCE), and variable
-  bindings use the Variable CR name verbatim, so dashed datastream names are not
-  legal CEL identifiers. Upstream ask (draft story, not filed): declare rule
-  variables during validation (from the compliance.openshift.io/rule-variable
-  annotation / CELRuleContent.Variables) and sanitize binding names
-  (dash -> underscore) so `ocp4_hypershift_cluster` works and one documented
-  `setValues` block drives OpenSCAP and CEL rules alike.
-- **The selected cluster must exist**: HostedCluster rules FAIL if the selector
-  points at a nonexistent cluster (catches typos); the NodePool rule is vacuous-PASS
-  for clusters with no NodePools (e.g. none-platform).
-- The previous FLEET-wide semantics (`.items.all(...)` over every HostedCluster - a
-  single gate that a newly onboarded violating cluster trips) can be restored per
-  rule by dropping the two variable inputs and the selector filter; both shapes can
-  coexist under different rule names.
-- The etcd pods input now fetches cluster-wide (input specs cannot be templated);
-  on very large management clusters consider the namespace-baked per-cluster
-  generation instead if pod-list size becomes a concern.
-
-Also unchanged: `rbac-hypershift-read.yaml` (one grant) and the management cluster's
-own self-scans (Layer D).
-
-### 7.3 Distribution and operations at fleet scale
-
-- **In-hosted layer via ACM/MCE policies or GitOps.** MCE auto-imports every hosted
-  cluster as a managed cluster; an ACM Policy (or Argo ApplicationSet keyed on the
-  hosted-cluster kubeconfig secrets) can push the identical in-hosted bundle
-  (Subscription with the worker nodeSelector + PLATFORM env, tailored profiles, SSBs)
-  to all hosted clusters and keep it converged as new clusters onboard - avoiding
-  N manual installs.
-- **Stagger schedules.** N hosted clusters mean N mgmt tailored suites on the
-  management cluster; with the shared `default` ScanSetting they all fire at the same
-  cron time. Create a few ScanSettings with offset schedules (e.g. one per hour
-  bucket) and spread the bindings, so the api-resource-collector load and etcd reads
-  on the management cluster do not spike at once.
-- **Result slicing.** Scan names embed the cluster name, and every
-  ComplianceCheckResult carries the `compliance.openshift.io/scan-name` label -
-  `oc get ccr -l compliance.openshift.io/scan-name=hypershift-cis-<cluster>` gives a
-  per-cluster report; ACM's governance view aggregates across the fleet.
-- **Onboarding checklist for a new hosted cluster:** generate + apply the per-cluster
-  mgmt TPs/SSBs and etcd CEL rules; let the policy/GitOps engine roll out the
-  in-hosted bundle; confirm the fleet CEL rules pick it up (they do automatically);
-  add its scans to the schedule bucket with the most headroom.
-
-
-## 8. GA revalidation + OAuth-client rule (2026-08-10)
-
-The management-side package was re-run against a REAL HostedCluster (`hcp-demo`,
-none-platform) on a 4.21.28 GA management cluster with CO v1.9.1:
-
-- `hypershift-cis-hcp-demo`: **49 PASS / 21 MANUAL / 7 FAIL — byte-identical to the
-  original nightly-cluster baseline**, same FAIL set, all 10 disabled rules absent,
-  `kubeadmin-removed` auto-N/A, `audit-log-forwarding-webhook` present (mgmt CPE).
-- `hcp-cel-workarounds`: **14/14 identical** — six etcd env-var rules PASS
-  (CMP-4520 reproduces on GA), six true findings FAIL, TLS profile + NodePool PASS.
-
-New: `oauthclient-rule/` — faithful OR-semantics CustomRule for
-`oauth_or_oauthclient_token_maxage` (server tokenConfig OR every OAuthClient),
-celctl 7/7 + live-validated both directions; deploys on the cluster being assessed
-(OAuthClients are not visible cross-cluster). See its README for scope details.
-
-### 8.1 All profiles revalidated on GA (2026-08-10)
-
-| Tailored scan vs real hcp-demo | Result | vs baseline |
-|---|---|---|
-| CIS (with disables) | 49 PASS / 21 MANUAL / 7 FAIL | identical counts AND FAIL set |
-| STIG (27 disables) | 2 PASS / 11 MANUAL / 4 FAIL | identical counts AND FAIL set |
-| High (51 disables) | 43 PASS / 23 MANUAL / 7 FAIL | identical counts AND FAIL set |
-| PCI-DSS (no disables - first-ever run of the 2nd supported profile) | 67 PASS / 22 MANUAL / 22 FAIL | matches the guide's predicted dispositions rule-by-rule |
-
-PCI details: the 6 etcd false-positives appear (CMP-4520 confirmed in PCI), the 9
-wrong-target FAILs match the guide's PCI list exactly, all 5 auto-N/A rules
-(incl. compound-platform `file-integrity-*`) are absent, and aware rules PASS from
-hosted-CP data (`api-server-tls-cipher-suites`, `tls-version-check-apiserver`,
-`configure-network-policies-hypershift-hosted`). Note: the built profile carries
-111 rules vs the 67 counted from the controls files - rule COUNTS are
-content-version-dependent; the disposition CLASSES (aware / wrong-target /
-auto-N/A) are what the analysis guarantees, and all sampled rules matched.
-
-Additionally: every CEL rule was unit-validated through celctl (the operator's
-scanner engine) with fixture matrices generated from the deployed expressions —
-73/73 cases for the 14 per-cluster management rules, 7/7 for the OAuth rule.
-
-### 8.2 Per-cluster CEL rules (2026-08-10)
-
-All 14 management-side CEL rules converted from fleet-wide to PER-CLUSTER selection
-via the variable-as-input pattern (see section 7.2 for usage). Validation:
-
-- celctl fixture matrices regenerated from the new deployed expressions:
-  **73/73 cases** across the 14 rules, including per-rule isolation (violations in
-  OTHER clusters ignored), selector-switch flips, and existence guards.
-- Live three-leg round trip on the real `hcp-demo` (stock CO v1.9.1, OCP 4.21.28):
-  selector=`hcp-demo` -> **8 PASS / 6 FAIL** (identical verdicts to the fleet
-  version); selector=`bogus` -> **13 FAIL / 1 PASS**, the sole PASS being the
-  designed-vacuous `hcp-nodepool-config`, proving the existence guards; selector
-  restored -> **8 PASS / 6 FAIL**.
-- All 19 CustomRules on the cluster remained `Ready` through the in-place update.
-
-Semantics changes vs the fleet versions: HostedCluster rules now FAIL when the
-selector points at a nonexistent cluster; the etcd rules no longer need per-cluster
-regeneration (namespace derived from the selector); the etcd pods input fetches
-cluster-wide (perf note in 7.2).

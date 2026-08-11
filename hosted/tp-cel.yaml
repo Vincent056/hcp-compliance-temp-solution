@@ -1,0 +1,27 @@
+apiVersion: compliance.openshift.io/v1alpha1
+kind: TailoredProfile
+metadata:
+  name: hosted-cel-oauthclient
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: OAuthClient client-half checks (CEL)
+  description: >-
+    Binds the two client-half CEL rules split from the original
+    oauth-or-oauthclient OR rules (see hosted/customrules.yaml). Runs inside the
+    assessed cluster; no selector is needed because the rules read this cluster's
+    own OAuthClients. CEL rules cannot mix with OpenSCAP profiles, hence the
+    separate TailoredProfile. The benchmark requirement is met if either this
+    client half or the management-side server half
+    (hcp-oauth-token-maxage / hcp-oauth-inactivity-timeout) passes.
+  enableRules:
+    - kind: CustomRule
+      name: hcp-oauthclient-token-maxage
+      rationale: client half of oauth-or-oauthclient-token-maxage
+    - kind: CustomRule
+      name: hcp-oauthclient-inactivity-timeout
+      rationale: client half of oauth-or-oauthclient-inactivity-timeout
+    - kind: CustomRule
+      name: hcp-audit-error-alert-exists
+      rationale: hub+hosted variant of audit-error-alert-exists (label-agnostic)

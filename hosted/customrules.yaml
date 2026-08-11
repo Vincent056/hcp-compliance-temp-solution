@@ -1,0 +1,99 @@
+# In-hosted CEL CustomRules: the CLIENT halves of the two original OR rules
+# ocp4-oauth-or-oauthclient-token-maxage / ocp4-oauth-or-oauthclient-inactivity-timeout.
+#
+# WHY SPLIT: the original rules OR two checks — the OAuth SERVER tokenConfig, or
+# EVERY OAuthClient overriding it. On Hosted Control Planes the two halves live in
+# different clusters: the server truth is HostedCluster.spec.configuration.oauth on
+# the MANAGEMENT cluster (the guest's oauths/cluster object is NOT reconciled from
+# it), while OAuthClients exist only INSIDE the hosted cluster. No single scan can
+# see both, so the OR is split: the server half is assessed by the management CEL
+# rules hcp-oauth-token-maxage / hcp-oauth-inactivity-timeout, and these two rules
+# assess the client half from inside the hosted cluster. The benchmark requirement
+# is satisfied if EITHER half PASSes for the respective setting.
+#
+# Apply on the cluster being assessed (each hosted cluster; also valid on a
+# standalone/management cluster, where the original OpenSCAP rules work too).
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-oauthclient-token-maxage
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: "Every OAuthClient sets an access token max age of 8h or less (client half of oauth-or-oauthclient-token-maxage)"
+  id: hcp_oauthclient_token_maxage
+  description: "CLIENT half of the original OR rule ocp4-oauth-or-oauthclient-token-maxage, split for Hosted Control Planes: the server half (OAuth server tokenConfig) is the management-side rule hcp-oauth-token-maxage reading HostedCluster.spec, because the guest's oauths/cluster is not the source of truth and OAuthClients are not visible cross-cluster. This rule PASSes when every OAuthClient in this cluster overrides accessTokenMaxAgeSeconds to 28800 (8h, the STIG value) or less. The benchmark requirement is met if EITHER half passes. Original OVAL: all clients' accessTokenMaxAgeSeconds must exist and match the org-defined value (default 86400, STIG refines to 8h); this rule uses <= 28800 consistent with the server-half rule."
+  failureReason: "At least one OAuthClient does not set accessTokenMaxAgeSeconds (or sets it above 28800), and there is no client-side override for every client. Not a finding if the server half (hcp-oauth-token-maxage on the management cluster) PASSes."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: oauthclients
+      kubernetesInputSpec:
+        group: oauth.openshift.io
+        apiVersion: v1
+        resource: oauthclients
+  expression: |
+    oauthclients.items.size() > 0 &&
+    oauthclients.items.all(c, has(c.accessTokenMaxAgeSeconds) && c.accessTokenMaxAgeSeconds <= 28800)
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-oauthclient-inactivity-timeout
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: "Every OAuthClient sets an access token inactivity timeout (client half of oauth-or-oauthclient-inactivity-timeout)"
+  id: hcp_oauthclient_inactivity_timeout
+  description: "CLIENT half of the original OR rule ocp4-oauth-or-oauthclient-inactivity-timeout, split for Hosted Control Planes: the server half (OAuth server tokenConfig.accessTokenInactivityTimeout) is the management-side rule hcp-oauth-inactivity-timeout reading HostedCluster.spec, because the guest's oauths/cluster is not the source of truth and OAuthClients are not visible cross-cluster. This rule PASSes when every OAuthClient in this cluster sets accessTokenInactivityTimeoutSeconds (a positive value; the original OVAL compares equality with the org-defined value, default 600s / NIST 10m0s). The benchmark requirement is met if EITHER half passes."
+  failureReason: "At least one OAuthClient does not set accessTokenInactivityTimeoutSeconds. Not a finding if the server half (hcp-oauth-inactivity-timeout on the management cluster) PASSes."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: oauthclients
+      kubernetesInputSpec:
+        group: oauth.openshift.io
+        apiVersion: v1
+        resource: oauthclients
+  expression: |
+    oauthclients.items.size() > 0 &&
+    oauthclients.items.all(c, has(c.accessTokenInactivityTimeoutSeconds) && c.accessTokenInactivityTimeoutSeconds > 0)
+---
+# Adapted from the original ocp4-audit-error-alert-exists (works on BOTH hub and
+# hosted clusters): at least one PrometheusRule anywhere in the cluster must alert
+# on the audit-error ratio (expr referencing apiserver_audit_error_total and
+# apiserver_audit_event_total - label-matcher-agnostic, mirroring the original
+# OVAL pattern, because 4.21 hosted-cluster apiserver metrics do not carry the
+# apiserver=~".+-apiserver" label the hub's shipped alert filters on; OCP 4.22
+# adds it). On a hub cluster this PASSes via the shipped audit-errors
+# PrometheusRule (openshift-kube-apiserver). On a 4.21 hosted cluster it FAILs
+# until the remediation PrometheusRule is created (see README - remediation).
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-audit-error-alert-exists
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: "An alert exists for API server audit-log write errors (hub + hosted variant of audit-error-alert-exists)"
+  id: hcp_audit_error_alert_exists
+  description: "At least one PrometheusRule in this cluster must define an alert on the audit-error ratio (expression referencing apiserver_audit_error_total and apiserver_audit_event_total). Adapted from ocp4-audit-error-alert-exists to work on both hub and hosted clusters: the check accepts expressions with or without the apiserver=~\".+-apiserver\" label matcher, because 4.21 hosted-cluster apiserver metrics do not carry that label (OCP 4.22 adds it); the original OVAL pattern is equally label-agnostic. Hub clusters PASS via the shipped audit-errors PrometheusRule; 4.21 hosted clusters FAIL until the remediation PrometheusRule is created in the hosted cluster (hypershift does not ship one on 4.21)."
+  failureReason: "No PrometheusRule in this cluster alerts on apiserver audit-log write errors (apiserver_audit_error_total / apiserver_audit_event_total ratio). Create the audit-errors PrometheusRule (see the solution README remediation section)."
+  severity: high
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: prometheusrules
+      kubernetesInputSpec:
+        group: monitoring.coreos.com
+        apiVersion: v1
+        resource: prometheusrules
+  expression: |
+    prometheusrules.items.exists(pr, has(pr.spec.groups) && pr.spec.groups.exists(g, has(g.rules) &&
+      g.rules.exists(r, has(r.expr) && string(r.expr).contains('apiserver_audit_error_total') &&
+        string(r.expr).contains('apiserver_audit_event_total'))))

@@ -1,0 +1,408 @@
+# FLEET-WIDE CustomRules: one scan gating EVERY HostedCluster on the management
+# cluster (any violating cluster -> FAIL). Selector-free, so these are plain
+# CustomRules with full admission validation. CP namespaces are derived from the
+# HostedCluster objects themselves (no prefix baked in); prefix-scoped variants
+# would follow the customrules-fleet-<prefix>.yaml naming convention.
+# Complement: per-cluster attribution via management/customrules.yaml (README 7.2).
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-fleet-etcd-cert-file
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: "Fleet gate: ETCD_CERT_FILE configured on every hosted cluster etcd"
+  id: hcp_fleet_etcd_cert_file
+  description: "Fleet gate: ETCD_CERT_FILE configured on every hosted cluster etcd. FLEET-WIDE gate: evaluates EVERY HostedCluster on this management cluster in one scan - a single result that FAILs if ANY hosted cluster violates, so newly onboarded violating clusters trip it automatically. No selector needed, so this ships as a CustomRule (full admission validation). Control-plane namespaces are derived per HostedCluster (metadata.namespace + '-' + metadata.name) - no namespace prefix is baked in; prefix-scoped variants, if ever needed, follow the customrules-fleet-<prefix>.yaml file naming convention. For per-cluster attribution use the per-cluster Rule set (management/customrules.yaml, README 7.2)."
+  failureReason: "etcd in at least one hosted cluster's control-plane namespace does not set ETCD_CERT_FILE appropriately."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+    - name: pods
+      kubernetesInputSpec:
+        apiVersion: v1
+        resource: pods
+  expression: |
+    hcs.items.all(hc,
+      pods.items.filter(p, p.metadata.namespace == hc.metadata.namespace + '-' + hc.metadata.name &&
+        has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd')
+        .all(p, p.spec.containers.exists(c, c.name == 'etcd') &&
+          p.spec.containers.filter(c, c.name == 'etcd')
+            .all(c, c.env.exists(e, e.name == 'ETCD_CERT_FILE' && has(e.value) && e.value != ''))))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-fleet-etcd-key-file
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: "Fleet gate: ETCD_KEY_FILE configured on every hosted cluster etcd"
+  id: hcp_fleet_etcd_key_file
+  description: "Fleet gate: ETCD_KEY_FILE configured on every hosted cluster etcd. FLEET-WIDE gate: evaluates EVERY HostedCluster on this management cluster in one scan - a single result that FAILs if ANY hosted cluster violates, so newly onboarded violating clusters trip it automatically. No selector needed, so this ships as a CustomRule (full admission validation). Control-plane namespaces are derived per HostedCluster (metadata.namespace + '-' + metadata.name) - no namespace prefix is baked in; prefix-scoped variants, if ever needed, follow the customrules-fleet-<prefix>.yaml file naming convention. For per-cluster attribution use the per-cluster Rule set (management/customrules.yaml, README 7.2)."
+  failureReason: "etcd in at least one hosted cluster's control-plane namespace does not set ETCD_KEY_FILE appropriately."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+    - name: pods
+      kubernetesInputSpec:
+        apiVersion: v1
+        resource: pods
+  expression: |
+    hcs.items.all(hc,
+      pods.items.filter(p, p.metadata.namespace == hc.metadata.namespace + '-' + hc.metadata.name &&
+        has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd')
+        .all(p, p.spec.containers.exists(c, c.name == 'etcd') &&
+          p.spec.containers.filter(c, c.name == 'etcd')
+            .all(c, c.env.exists(e, e.name == 'ETCD_KEY_FILE' && has(e.value) && e.value != ''))))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-fleet-etcd-client-cert-auth
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: "Fleet gate: ETCD_CLIENT_CERT_AUTH configured on every hosted cluster etcd"
+  id: hcp_fleet_etcd_client_cert_auth
+  description: "Fleet gate: ETCD_CLIENT_CERT_AUTH configured on every hosted cluster etcd. FLEET-WIDE gate: evaluates EVERY HostedCluster on this management cluster in one scan - a single result that FAILs if ANY hosted cluster violates, so newly onboarded violating clusters trip it automatically. No selector needed, so this ships as a CustomRule (full admission validation). Control-plane namespaces are derived per HostedCluster (metadata.namespace + '-' + metadata.name) - no namespace prefix is baked in; prefix-scoped variants, if ever needed, follow the customrules-fleet-<prefix>.yaml file naming convention. For per-cluster attribution use the per-cluster Rule set (management/customrules.yaml, README 7.2)."
+  failureReason: "etcd in at least one hosted cluster's control-plane namespace does not set ETCD_CLIENT_CERT_AUTH appropriately."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+    - name: pods
+      kubernetesInputSpec:
+        apiVersion: v1
+        resource: pods
+  expression: |
+    hcs.items.all(hc,
+      pods.items.filter(p, p.metadata.namespace == hc.metadata.namespace + '-' + hc.metadata.name &&
+        has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd')
+        .all(p, p.spec.containers.exists(c, c.name == 'etcd') &&
+          p.spec.containers.filter(c, c.name == 'etcd')
+            .all(c, c.env.exists(e, e.name == 'ETCD_CLIENT_CERT_AUTH' && has(e.value) && e.value == 'true'))))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-fleet-etcd-peer-cert-file
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: "Fleet gate: ETCD_PEER_CERT_FILE configured on every hosted cluster etcd"
+  id: hcp_fleet_etcd_peer_cert_file
+  description: "Fleet gate: ETCD_PEER_CERT_FILE configured on every hosted cluster etcd. FLEET-WIDE gate: evaluates EVERY HostedCluster on this management cluster in one scan - a single result that FAILs if ANY hosted cluster violates, so newly onboarded violating clusters trip it automatically. No selector needed, so this ships as a CustomRule (full admission validation). Control-plane namespaces are derived per HostedCluster (metadata.namespace + '-' + metadata.name) - no namespace prefix is baked in; prefix-scoped variants, if ever needed, follow the customrules-fleet-<prefix>.yaml file naming convention. For per-cluster attribution use the per-cluster Rule set (management/customrules.yaml, README 7.2)."
+  failureReason: "etcd in at least one hosted cluster's control-plane namespace does not set ETCD_PEER_CERT_FILE appropriately."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+    - name: pods
+      kubernetesInputSpec:
+        apiVersion: v1
+        resource: pods
+  expression: |
+    hcs.items.all(hc,
+      pods.items.filter(p, p.metadata.namespace == hc.metadata.namespace + '-' + hc.metadata.name &&
+        has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd')
+        .all(p, p.spec.containers.exists(c, c.name == 'etcd') &&
+          p.spec.containers.filter(c, c.name == 'etcd')
+            .all(c, c.env.exists(e, e.name == 'ETCD_PEER_CERT_FILE' && has(e.value) && e.value != ''))))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-fleet-etcd-peer-key-file
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: "Fleet gate: ETCD_PEER_KEY_FILE configured on every hosted cluster etcd"
+  id: hcp_fleet_etcd_peer_key_file
+  description: "Fleet gate: ETCD_PEER_KEY_FILE configured on every hosted cluster etcd. FLEET-WIDE gate: evaluates EVERY HostedCluster on this management cluster in one scan - a single result that FAILs if ANY hosted cluster violates, so newly onboarded violating clusters trip it automatically. No selector needed, so this ships as a CustomRule (full admission validation). Control-plane namespaces are derived per HostedCluster (metadata.namespace + '-' + metadata.name) - no namespace prefix is baked in; prefix-scoped variants, if ever needed, follow the customrules-fleet-<prefix>.yaml file naming convention. For per-cluster attribution use the per-cluster Rule set (management/customrules.yaml, README 7.2)."
+  failureReason: "etcd in at least one hosted cluster's control-plane namespace does not set ETCD_PEER_KEY_FILE appropriately."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+    - name: pods
+      kubernetesInputSpec:
+        apiVersion: v1
+        resource: pods
+  expression: |
+    hcs.items.all(hc,
+      pods.items.filter(p, p.metadata.namespace == hc.metadata.namespace + '-' + hc.metadata.name &&
+        has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd')
+        .all(p, p.spec.containers.exists(c, c.name == 'etcd') &&
+          p.spec.containers.filter(c, c.name == 'etcd')
+            .all(c, c.env.exists(e, e.name == 'ETCD_PEER_KEY_FILE' && has(e.value) && e.value != ''))))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-fleet-etcd-peer-client-cert-auth
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: "Fleet gate: ETCD_PEER_CLIENT_CERT_AUTH configured on every hosted cluster etcd"
+  id: hcp_fleet_etcd_peer_client_cert_auth
+  description: "Fleet gate: ETCD_PEER_CLIENT_CERT_AUTH configured on every hosted cluster etcd. FLEET-WIDE gate: evaluates EVERY HostedCluster on this management cluster in one scan - a single result that FAILs if ANY hosted cluster violates, so newly onboarded violating clusters trip it automatically. No selector needed, so this ships as a CustomRule (full admission validation). Control-plane namespaces are derived per HostedCluster (metadata.namespace + '-' + metadata.name) - no namespace prefix is baked in; prefix-scoped variants, if ever needed, follow the customrules-fleet-<prefix>.yaml file naming convention. For per-cluster attribution use the per-cluster Rule set (management/customrules.yaml, README 7.2)."
+  failureReason: "etcd in at least one hosted cluster's control-plane namespace does not set ETCD_PEER_CLIENT_CERT_AUTH appropriately."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+    - name: pods
+      kubernetesInputSpec:
+        apiVersion: v1
+        resource: pods
+  expression: |
+    hcs.items.all(hc,
+      pods.items.filter(p, p.metadata.namespace == hc.metadata.namespace + '-' + hc.metadata.name &&
+        has(p.metadata.labels) && 'app' in p.metadata.labels && p.metadata.labels['app'] == 'etcd')
+        .all(p, p.spec.containers.exists(c, c.name == 'etcd') &&
+          p.spec.containers.filter(c, c.name == 'etcd')
+            .all(c, c.env.exists(e, e.name == 'ETCD_PEER_CLIENT_CERT_AUTH' && has(e.value) && e.value == 'true'))))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-fleet-fips-enabled
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: "Fleet gate: Every hosted cluster must be created with FIPS mode enabled"
+  id: hcp_fleet_fips_enabled
+  description: "Fleet gate: Every hosted cluster must be created with FIPS mode enabled. FLEET-WIDE gate: evaluates EVERY HostedCluster on this management cluster in one scan - a single result that FAILs if ANY hosted cluster violates, so newly onboarded violating clusters trip it automatically. No selector needed, so this ships as a CustomRule (full admission validation). Control-plane namespaces are derived per HostedCluster (metadata.namespace + '-' + metadata.name) - no namespace prefix is baked in; prefix-scoped variants, if ever needed, follow the customrules-fleet-<prefix>.yaml file naming convention. For per-cluster attribution use the per-cluster Rule set (management/customrules.yaml, README 7.2)."
+  failureReason: "At least one HostedCluster does not set .spec.fips=true."
+  severity: high
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+  expression: |
+    hcs.items.all(hc, has(hc.spec.fips) && hc.spec.fips == true)
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-fleet-etcd-secret-encryption
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: "Fleet gate: Every hosted cluster must encrypt etcd secrets (NIST SC-28)"
+  id: hcp_fleet_etcd_secret_encryption
+  description: "Fleet gate: Every hosted cluster must encrypt etcd secrets (NIST SC-28). FLEET-WIDE gate: evaluates EVERY HostedCluster on this management cluster in one scan - a single result that FAILs if ANY hosted cluster violates, so newly onboarded violating clusters trip it automatically. No selector needed, so this ships as a CustomRule (full admission validation). Control-plane namespaces are derived per HostedCluster (metadata.namespace + '-' + metadata.name) - no namespace prefix is baked in; prefix-scoped variants, if ever needed, follow the customrules-fleet-<prefix>.yaml file naming convention. For per-cluster attribution use the per-cluster Rule set (management/customrules.yaml, README 7.2)."
+  failureReason: "At least one HostedCluster does not set .spec.secretEncryption to kms or aescbc."
+  severity: high
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+  expression: |
+    hcs.items.all(hc, has(hc.spec.secretEncryption) && has(hc.spec.secretEncryption.type) &&
+      (hc.spec.secretEncryption.type == 'kms' || hc.spec.secretEncryption.type == 'aescbc'))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-fleet-audit-profile
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: "Fleet gate: Every hosted cluster API server must log request bodies (STIG / NIST AU-2)"
+  id: hcp_fleet_audit_profile
+  description: "Fleet gate: Every hosted cluster API server must log request bodies (STIG / NIST AU-2). FLEET-WIDE gate: evaluates EVERY HostedCluster on this management cluster in one scan - a single result that FAILs if ANY hosted cluster violates, so newly onboarded violating clusters trip it automatically. No selector needed, so this ships as a CustomRule (full admission validation). Control-plane namespaces are derived per HostedCluster (metadata.namespace + '-' + metadata.name) - no namespace prefix is baked in; prefix-scoped variants, if ever needed, follow the customrules-fleet-<prefix>.yaml file naming convention. For per-cluster attribution use the per-cluster Rule set (management/customrules.yaml, README 7.2)."
+  failureReason: "At least one HostedCluster does not set an audit profile logging request bodies."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+  expression: |
+    hcs.items.all(hc, has(hc.spec.configuration) && has(hc.spec.configuration.apiServer) &&
+      has(hc.spec.configuration.apiServer.audit) && has(hc.spec.configuration.apiServer.audit.profile) &&
+      hc.spec.configuration.apiServer.audit.profile in ['WriteRequestBodies', 'AllRequestBodies'])
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-fleet-api-tls-security-profile
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: "Fleet gate: No hosted cluster API server may use the Old TLS profile (NIST SC-8)"
+  id: hcp_fleet_api_tls_security_profile
+  description: "Fleet gate: No hosted cluster API server may use the Old TLS profile (NIST SC-8). FLEET-WIDE gate: evaluates EVERY HostedCluster on this management cluster in one scan - a single result that FAILs if ANY hosted cluster violates, so newly onboarded violating clusters trip it automatically. No selector needed, so this ships as a CustomRule (full admission validation). Control-plane namespaces are derived per HostedCluster (metadata.namespace + '-' + metadata.name) - no namespace prefix is baked in; prefix-scoped variants, if ever needed, follow the customrules-fleet-<prefix>.yaml file naming convention. For per-cluster attribution use the per-cluster Rule set (management/customrules.yaml, README 7.2)."
+  failureReason: "At least one HostedCluster sets an Old or weak Custom tlsSecurityProfile."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+  expression: |
+    hcs.items.all(hc, !has(hc.spec.configuration) || !has(hc.spec.configuration.apiServer) ||
+      !has(hc.spec.configuration.apiServer.tlsSecurityProfile) ||
+      (hc.spec.configuration.apiServer.tlsSecurityProfile.type != 'Old' &&
+       (hc.spec.configuration.apiServer.tlsSecurityProfile.type != 'Custom' ||
+        (has(hc.spec.configuration.apiServer.tlsSecurityProfile.custom.minTLSVersion) &&
+         !(hc.spec.configuration.apiServer.tlsSecurityProfile.custom.minTLSVersion in ['VersionTLS10', 'VersionTLS11'])))))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-fleet-oauth-token-maxage
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: "Fleet gate: Every hosted cluster OAuth token max age must be 8h or less (STIG; server half)"
+  id: hcp_fleet_oauth_token_maxage
+  description: "Fleet gate: Every hosted cluster OAuth token max age must be 8h or less (STIG; server half). FLEET-WIDE gate: evaluates EVERY HostedCluster on this management cluster in one scan - a single result that FAILs if ANY hosted cluster violates, so newly onboarded violating clusters trip it automatically. No selector needed, so this ships as a CustomRule (full admission validation). Control-plane namespaces are derived per HostedCluster (metadata.namespace + '-' + metadata.name) - no namespace prefix is baked in; prefix-scoped variants, if ever needed, follow the customrules-fleet-<prefix>.yaml file naming convention. For per-cluster attribution use the per-cluster Rule set (management/customrules.yaml, README 7.2)."
+  failureReason: "At least one HostedCluster does not set tokenConfig.accessTokenMaxAgeSeconds <= 28800. Not a finding for clusters whose client half (hcp-oauthclient-token-maxage in-hosted) PASSes."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+  expression: |
+    hcs.items.all(hc, has(hc.spec.configuration) && has(hc.spec.configuration.oauth) &&
+      has(hc.spec.configuration.oauth.tokenConfig) &&
+      has(hc.spec.configuration.oauth.tokenConfig.accessTokenMaxAgeSeconds) &&
+      hc.spec.configuration.oauth.tokenConfig.accessTokenMaxAgeSeconds <= 28800)
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-fleet-oauth-inactivity-timeout
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: "Fleet gate: Every hosted cluster OAuth token inactivity timeout must be set (STIG / NIST AC-12; server half)"
+  id: hcp_fleet_oauth_inactivity_timeout
+  description: "Fleet gate: Every hosted cluster OAuth token inactivity timeout must be set (STIG / NIST AC-12; server half). FLEET-WIDE gate: evaluates EVERY HostedCluster on this management cluster in one scan - a single result that FAILs if ANY hosted cluster violates, so newly onboarded violating clusters trip it automatically. No selector needed, so this ships as a CustomRule (full admission validation). Control-plane namespaces are derived per HostedCluster (metadata.namespace + '-' + metadata.name) - no namespace prefix is baked in; prefix-scoped variants, if ever needed, follow the customrules-fleet-<prefix>.yaml file naming convention. For per-cluster attribution use the per-cluster Rule set (management/customrules.yaml, README 7.2)."
+  failureReason: "At least one HostedCluster does not set tokenConfig.accessTokenInactivityTimeout. Not a finding for clusters whose client half (hcp-oauthclient-inactivity-timeout in-hosted) PASSes."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+  expression: |
+    hcs.items.all(hc, has(hc.spec.configuration) && has(hc.spec.configuration.oauth) &&
+      has(hc.spec.configuration.oauth.tokenConfig) &&
+      has(hc.spec.configuration.oauth.tokenConfig.accessTokenInactivityTimeout))
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-fleet-audit-webhook
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: "Fleet gate: Every hosted cluster must configure an audit webhook (NIST AU-4(1))"
+  id: hcp_fleet_audit_webhook
+  description: "Fleet gate: Every hosted cluster must configure an audit webhook (NIST AU-4(1)). FLEET-WIDE gate: evaluates EVERY HostedCluster on this management cluster in one scan - a single result that FAILs if ANY hosted cluster violates, so newly onboarded violating clusters trip it automatically. No selector needed, so this ships as a CustomRule (full admission validation). Control-plane namespaces are derived per HostedCluster (metadata.namespace + '-' + metadata.name) - no namespace prefix is baked in; prefix-scoped variants, if ever needed, follow the customrules-fleet-<prefix>.yaml file naming convention. For per-cluster attribution use the per-cluster Rule set (management/customrules.yaml, README 7.2)."
+  failureReason: "At least one HostedCluster does not set .spec.auditWebhook."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: hcs
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: hostedclusters
+  expression: |
+    hcs.items.all(hc, has(hc.spec.auditWebhook) && hc.spec.auditWebhook.name != '')
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: CustomRule
+metadata:
+  name: hcp-fleet-nodepool-config
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: "Fleet gate: every NodePool carries node hardening configuration"
+  id: hcp_fleet_nodepool_config
+  description: "Fleet gate: every NodePool carries node hardening configuration. FLEET-WIDE gate: evaluates EVERY HostedCluster on this management cluster in one scan - a single result that FAILs if ANY hosted cluster violates, so newly onboarded violating clusters trip it automatically. No selector needed, so this ships as a CustomRule (full admission validation). Control-plane namespaces are derived per HostedCluster (metadata.namespace + '-' + metadata.name) - no namespace prefix is baked in; prefix-scoped variants, if ever needed, follow the customrules-fleet-<prefix>.yaml file naming convention. For per-cluster attribution use the per-cluster Rule set (management/customrules.yaml, README 7.2)."
+  failureReason: "At least one NodePool has no .spec.config; its worker nodes receive no hardening MachineConfigs."
+  severity: medium
+  checkType: Platform
+  scannerType: CEL
+  inputs:
+    - name: nps
+      kubernetesInputSpec:
+        group: hypershift.openshift.io
+        apiVersion: v1beta1
+        resource: nodepools
+  expression: |
+    nps.items.all(np, has(np.spec.config) && np.spec.config.size() > 0)

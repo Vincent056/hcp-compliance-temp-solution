@@ -1,6 +1,6 @@
 # Full Rule Coverage Matrix: CIS / STIG / High on Hosted Control Planes
 
-**Docs:** [Solution README](README.md) · [Rule Coverage Matrix](RULE_COVERAGE_MATRIX.md) · [Scan Mechanics Guide](docs-background/HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md) · [Strategy & Gap Analysis](docs-background/HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) · [Validation Report](docs-background/HCP_SCAN_VALIDATION_REPORT.md)
+**Docs:** [README](README.md) · [Runbook](RUNBOOK.md) · [Coverage](COVERAGE.md) · [Design](DESIGN.md) · [Validation](VALIDATION.md) · [Rule Matrix](RULE_COVERAGE_MATRIX.md) · [Background: Scan Mechanics](docs-background/HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md) · [Background: Strategy](docs-background/HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) · [Background: First Validation](docs-background/HCP_SCAN_VALIDATION_REPORT.md)
 
 ## TL;DR
 
@@ -46,7 +46,7 @@ management-cluster tailored scan (TailoredProfile with the HyperShift variables)
 |---|---|
 | `CORRECT hosted-CP data (aware)` | The rule is HyperShift-aware: its fetch path is templated with the HyperShift variables, so it reads the hosted control plane's own objects (`kas-config`, etcd/KCM pods in `clusters-<name>`, the HostedCluster CR). The PASS/FAIL truthfully describes the hosted cluster. |
 | `auto N/A` | Rule carries `platform: not ocp4-on-hypershift`; the scan suppresses it automatically (NOT-APPLICABLE, no result object). Correct behavior — the rule cannot say anything meaningful about the hosted cluster from the management side. |
-| `disabled -> CEL <rule>` | Disabled in the validated TailoredProfile because the OpenSCAP rule mis-evaluates on HCP (etcd false positives CMP-4520, wrong-target reads); the named CEL CustomRule in `customrules.yaml` provides the authoritative replacement check. |
+| `disabled -> CEL <rule>` | Disabled in the validated TailoredProfile because the OpenSCAP rule mis-evaluates on HCP (etcd false positives CMP-4520, wrong-target reads); the named CEL CustomRule in `management/customrules.yaml` (or `hosted/customrules.yaml` for in-hosted rules) provides the authoritative replacement check. The CEL rules ship as directly-created Rule CRs whose expressions reference the dash-free selector Variables (`hypershiftcluster`/`hypershiftprefix`); the scanner delivers each enabling TailoredProfile's `setValues` natively, so per-cluster TailoredProfile instances scan concurrently with one rule set (DESIGN.md). The `hcp-selector-valid` sentinel flags a nonexistent selected cluster. |
 | `disabled (wrong-target)` | Disabled in the validated TailoredProfile: the rule would read the MANAGEMENT cluster's resources and report about the wrong cluster. The authoritative answer must come from the in-hosted scan. |
 | `WRONG-TARGET (reads mgmt)` | NOT disabled in the validated profile (kept for demonstration): the result reflects the management cluster, not the hosted one. Disable in production tailored profiles, or read it as a management-cluster finding. |
 | `MANUAL` | OCIL-only rule with no automated check; always reports MANUAL. Perform the attestation against the hosted cluster. |
@@ -214,14 +214,14 @@ Platform rules listed: 94
 |---|---|---|---|---|---|---|
 | `api_server_encryption_provider_cipher` | A | CORRECT hosted-CP data (aware) | FAIL | disabled in-hosted (CP rule) | - | Mgmt scan |
 | `api_server_tls_security_profile` | A | disabled -> CEL `hcp-api-tls-security-profile` | - | covered in-hosted | PASS | CEL |
-| `audit_error_alert_exists` | A | disabled (wrong-target) | - | covered in-hosted | FAIL | Hosted scan |
+| `audit_error_alert_exists` | A | disabled (wrong-target: would false-PASS via the hub's own audit-errors alert) | - | covered in-hosted + CEL `hcp-audit-error-alert-exists` (hub+hosted variant, label-agnostic) | FAIL until `hosted/remediation-audit-errors.yaml` applied (then PASS - validated live) | Hosted scan + CEL; remediation shipped |
 | `audit_log_forwarding_enabled` | A | auto N/A | - | disabled in-hosted (CP rule) | - | Hosted scan |
 | `audit_log_forwarding_uses_tls` | A | disabled -> CEL `hcp-audit-webhook (existence only)` | - | covered in-hosted | FAIL | CEL |
 | `audit_profile_set` | A | disabled -> CEL `hcp-audit-profile` | - | covered in-hosted | FAIL | CEL |
 | `classification_banner` | A | disabled (wrong-target) | - | covered in-hosted | FAIL | Hosted scan |
 | `cluster_logging_operator_exist` | A | disabled (wrong-target) | - | covered in-hosted | FAIL | Hosted scan |
 | `cluster_version_operator_exists` | A | disabled (wrong-target) | - | covered in-hosted | PASS | Hosted scan |
-| `cluster_version_operator_verify_integrity` | A | disabled (wrong-target) | - | covered in-hosted | PASS | Hosted scan |
+| `cluster_version_operator_verify_integrity` | A | disabled (wrong-target) | - | covered in-hosted | PASS | Hosted scan. CAVEAT: relies on CVO release-image signature verification; mirrored/proxy environments can legitimately show `verified=false`, and clusterversion history entries are immutable (an early unverified entry persists). Inspect with: `oc get clusterversion version -o jsonpath='{range .status.history[*]}{.version} verified={.verified}{"\n"}{end}'` |
 | `configure_network_policies` | A | auto N/A | - | covered in-hosted | PASS | Hosted scan |
 | `configure_network_policies_namespaces` | A | auto N/A | - | covered in-hosted | FAIL | Hosted scan |
 | `container_security_operator_exists` | A | disabled (wrong-target) | - | covered in-hosted | FAIL | Hosted scan |
@@ -233,8 +233,8 @@ Platform rules listed: 94
 | `kubeadmin_removed` | A | auto N/A | - | covered in-hosted | FAIL | Hosted scan |
 | `oauth_login_template_set` | A | CORRECT hosted-CP data (aware) | FAIL | disabled in-hosted (CP rule) | - | Mgmt scan |
 | `oauth_logout_url_set` | A | disabled (wrong-target) | - | covered in-hosted | FAIL | Hosted scan |
-| `oauth_or_oauthclient_inactivity_timeout` | A | disabled -> CEL `hcp-oauth-inactivity-timeout` | - | covered in-hosted | FAIL | CEL |
-| `oauth_or_oauthclient_token_maxage` | A | disabled -> CEL `hcp-oauth-token-maxage` | - | covered in-hosted | FAIL | CEL |
+| `oauth_or_oauthclient_inactivity_timeout` | A | disabled -> CEL `hcp-oauth-inactivity-timeout` (server half, HostedCluster.spec) | - | disabled -> CEL `hcp-oauthclient-inactivity-timeout` (client half; guest oauths/cluster is NOT the server truth - proven live) | FAIL both halves unhardened; client half PASS after overrides | Split CEL (met if EITHER half passes) |
+| `oauth_or_oauthclient_token_maxage` | A | disabled -> CEL `hcp-oauth-token-maxage` (server half, HostedCluster.spec) | - | disabled -> CEL `hcp-oauthclient-token-maxage` (client half; guest oauths/cluster is NOT the server truth - proven live) | FAIL both halves unhardened; client half PASS after overrides | Split CEL (met if EITHER half passes) |
 | `oauth_provider_selection_set` | A | CORRECT hosted-CP data (aware) | FAIL | disabled in-hosted (CP rule) | - | Mgmt scan |
 | `ocp_allowed_registries` | A | disabled (wrong-target) | - | covered in-hosted | FAIL | Hosted scan |
 | `ocp_allowed_registries_for_import` | A | disabled (wrong-target) | - | covered in-hosted | FAIL | Hosted scan |
@@ -313,7 +313,7 @@ Platform rules listed: 48
 | `api_server_tls_security_profile_custom_min_tls_version` | A | disabled -> CEL `hcp-api-tls-security-profile` | - | covered in-hosted | PASS | CEL |
 | `api_server_tls_security_profile_not_old` | A | disabled -> CEL `hcp-api-tls-security-profile` | - | covered in-hosted | PASS | CEL |
 | `api_server_token_auth` | A | CORRECT hosted-CP data (aware) | PASS | disabled in-hosted (CP rule) | - | Mgmt scan |
-| `audit_error_alert_exists` | A | disabled (wrong-target) | - | covered in-hosted | FAIL | Hosted scan |
+| `audit_error_alert_exists` | A | disabled (wrong-target: would false-PASS via the hub's own audit-errors alert) | - | covered in-hosted + CEL `hcp-audit-error-alert-exists` (hub+hosted variant, label-agnostic) | FAIL until `hosted/remediation-audit-errors.yaml` applied (then PASS - validated live) | Hosted scan + CEL; remediation shipped |
 | `audit_log_forwarding_enabled` | A | auto N/A | - | disabled in-hosted (CP rule) | - | Hosted scan |
 | `audit_log_forwarding_uses_tls` | A | disabled -> CEL `hcp-audit-webhook (existence only)` | - | covered in-hosted | FAIL | CEL |
 | `audit_log_forwarding_webhook` | A | CORRECT hosted-CP data (aware) | FAIL | N/A (mgmt-side rule) | - | Mgmt scan |
@@ -322,7 +322,7 @@ Platform rules listed: 48
 | `banner_or_login_template_set` | A | disabled (wrong-target) | - | covered in-hosted | FAIL | Hosted scan |
 | `cluster_logging_operator_exist` | A | disabled (wrong-target) | - | covered in-hosted | FAIL | Hosted scan |
 | `cluster_version_operator_exists` | A | disabled (wrong-target) | - | covered in-hosted | PASS | Hosted scan |
-| `cluster_version_operator_verify_integrity` | A | disabled (wrong-target) | - | covered in-hosted | PASS | Hosted scan |
+| `cluster_version_operator_verify_integrity` | A | disabled (wrong-target) | - | covered in-hosted | PASS | Hosted scan. CAVEAT: relies on CVO release-image signature verification; mirrored/proxy environments can legitimately show `verified=false`, and clusterversion history entries are immutable (an early unverified entry persists). Inspect with: `oc get clusterversion version -o jsonpath='{range .status.history[*]}{.version} verified={.verified}{"\n"}{end}'` |
 | `cluster_wide_proxy_set` | A | disabled (wrong-target) | - | covered in-hosted | FAIL | Hosted scan |
 | `compliance_notification_enabled` | A | disabled (wrong-target) | - | covered in-hosted | FAIL | Hosted scan |
 | `configure_network_policies` | A | auto N/A | - | covered in-hosted | PASS | Hosted scan |
@@ -363,8 +363,8 @@ Platform rules listed: 48
 | `kubelet_configure_tls_cert` | A | CORRECT hosted-CP data (aware) | PASS | disabled in-hosted (CP rule) | - | Mgmt scan |
 | `kubelet_configure_tls_key` | A | CORRECT hosted-CP data (aware) | PASS | disabled in-hosted (CP rule) | - | Mgmt scan |
 | `kubelet_disable_readonly_port` | A | CORRECT hosted-CP data (aware) | PASS | runs on HostedCluster-spec mirror | FAIL | Mgmt scan |
-| `oauth_or_oauthclient_inactivity_timeout` | A | disabled -> CEL `hcp-oauth-inactivity-timeout` | - | covered in-hosted | FAIL | CEL |
-| `oauth_or_oauthclient_token_maxage` | A | disabled -> CEL `hcp-oauth-token-maxage` | - | covered in-hosted | FAIL | CEL |
+| `oauth_or_oauthclient_inactivity_timeout` | A | disabled -> CEL `hcp-oauth-inactivity-timeout` (server half, HostedCluster.spec) | - | disabled -> CEL `hcp-oauthclient-inactivity-timeout` (client half; guest oauths/cluster is NOT the server truth - proven live) | FAIL both halves unhardened; client half PASS after overrides | Split CEL (met if EITHER half passes) |
+| `oauth_or_oauthclient_token_maxage` | A | disabled -> CEL `hcp-oauth-token-maxage` (server half, HostedCluster.spec) | - | disabled -> CEL `hcp-oauthclient-token-maxage` (client half; guest oauths/cluster is NOT the server truth - proven live) | FAIL both halves unhardened; client half PASS after overrides | Split CEL (met if EITHER half passes) |
 | `ocp_allowed_registries` | A | disabled (wrong-target) | - | covered in-hosted | FAIL | Hosted scan |
 | `ocp_allowed_registries_for_import` | A | disabled (wrong-target) | - | covered in-hosted | FAIL | Hosted scan |
 | `ocp_api_server_audit_log_maxbackup` | A | CORRECT hosted-CP data (aware) | FAIL | disabled in-hosted (CP rule) | - | Mgmt scan |

@@ -1,8 +1,11 @@
 # Scanning Hosted Control Planes (HyperShift) with the Compliance Operator
 
-**Docs:** [Solution README](../README.md) · [Rule Coverage Matrix](../RULE_COVERAGE_MATRIX.md) · [Scan Mechanics Guide](HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md) · [Strategy & Gap Analysis](HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) · [Validation Report](HCP_SCAN_VALIDATION_REPORT.md)
+**Docs:** [README](../README.md) · [Runbook](../RUNBOOK.md) · [Coverage](../COVERAGE.md) · [Design](../DESIGN.md) · [Validation](../VALIDATION.md) · [Rule Matrix](../RULE_COVERAGE_MATRIX.md) · [Background: Scan Mechanics](HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md) · [Background: Strategy](HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) · [Background: First Validation](HCP_SCAN_VALIDATION_REPORT.md)
 
 ## TL;DR
+
+*(Historical snapshot from the 2026-07-31 validation; the deployable solution is the
+[Solution README](../README.md), which supersedes operational details here.)*
 
 How the management-cluster tailored scan works under the hood: two TailoredProfile
 variables drive Go-template dual-path fetches (hosted CP namespace instead of the
@@ -21,7 +24,7 @@ see the Solution README for the validated end-to-end package.
 >    `.spec.containers` only. Statements below about control-plane rules being
 >    "automatically NOT-APPLICABLE" inside hosted clusters describe the intent; in
 >    practice those rules false-FAIL until fixed - use the in-hosted tailored
->    profiles (`tp-in-hosted.yaml`) as the workaround.
+>    profiles (`hosted/tp.yaml`) as the workaround.
 > 2. **The six etcd dual-path rules false-FAIL on 4.21+ hosted control planes**
 >    (CMP-4520): hosted etcd moved from flags to `ETCD_*` env vars; the jqfilters
 >    only inspect args. CEL replacements ship in `customrules.yaml`.
@@ -349,7 +352,7 @@ the layer that can actually see the data:
   is `HostedCluster.spec` (audit profile, TLS security profile, OAuth token policy) -
   see `customrules.yaml` in the solution repo.
 - **The in-hosted tailored scan** (Compliance Operator inside the hosted cluster with
-  control-plane rules disabled, `tp-in-hosted.yaml`) covers everything that lives only
+  control-plane rules disabled, `hosted/tp.yaml`) covers everything that lives only
   in the hosted cluster: RBAC, SCCs, registries, routes, ingress, installed operators.
 - **The 6 etcd rules** (also disabled - false positives on HCP 4.21+, CMP-4520) are
   replaced 1:1 by the `hcp-etcd-*` CEL rules checking the env-based configuration.

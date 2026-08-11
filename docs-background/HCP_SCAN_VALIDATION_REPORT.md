@@ -1,8 +1,11 @@
 # Validation Report: Compliance Operator v1.9.1 Scanning a Hosted Control Plane from the Management Cluster
 
-**Docs:** [Solution README](../README.md) · [Rule Coverage Matrix](../RULE_COVERAGE_MATRIX.md) · [Scan Mechanics Guide](HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md) · [Strategy & Gap Analysis](HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) · [Validation Report](HCP_SCAN_VALIDATION_REPORT.md)
+**Docs:** [README](../README.md) · [Runbook](../RUNBOOK.md) · [Coverage](../COVERAGE.md) · [Design](../DESIGN.md) · [Validation](../VALIDATION.md) · [Rule Matrix](../RULE_COVERAGE_MATRIX.md) · [Background: Scan Mechanics](HYPERSHIFT_HOSTED_CP_SCAN_GUIDE.md) · [Background: Strategy](HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) · [Background: First Validation](HCP_SCAN_VALIDATION_REPORT.md)
 
 ## TL;DR
+
+*(Historical snapshot of the first validation run, 2026-07-31; results were reproduced
+identically in three later rounds - see the [Solution README](../README.md) section 8.)*
 
 The first live validation run: Compliance Operator v1.9.1 + MCE 2.17.1 on an OCP 4.21
 management cluster scanning HostedCluster `hcp-demo` with the CIS tailored profile.

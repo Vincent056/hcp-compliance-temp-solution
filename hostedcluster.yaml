@@ -14,7 +14,9 @@ metadata:
   namespace: clusters
 spec:
   release:
-    image: registry.build10.ci.openshift.org/ci-ln-b6zqd5k/release@sha256:8e2cdfab191a18e534cda6a26bcb06a0bc1c1823709ee1602d6d45a349bf80dd
+    # Substitute your release image, e.g. the management cluster's own:
+    #   oc get clusterversion version -o jsonpath='{.status.desired.image}'
+    image: <release-image>
   pullSecret:
     name: hcp-demo-pull-secret
   infraID: hcp-demo
@@ -24,7 +26,8 @@ spec:
   platform:
     type: None
   dns:
-    baseDomain: ci-ln-b6zqd5k-76ef8.aws-4.ci.openshift.org
+    # Substitute your base domain (for CI clusters: the cluster's own domain)
+    baseDomain: <base-domain>
   etcd:
     managementType: Managed
     managed:

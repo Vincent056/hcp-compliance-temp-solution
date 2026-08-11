@@ -1,0 +1,74 @@
+# One TailoredProfile PER HOSTED CLUSTER (this file is the hcp-demo instance -
+# copy it, change metadata.name and the two setValues, and bind with its own
+# ScanSettingBinding). All instances enable the SAME 15 Rule CRs: the scanner
+# delivers each TailoredProfile's setValues natively to the expressions, so
+# multiple instances scan different hosted clusters CONCURRENTLY with one rule
+# set. BOTH setValues entries are required (a missing one surfaces as a
+# scan-time ERROR on every rule).
+apiVersion: compliance.openshift.io/v1alpha1
+kind: TailoredProfile
+metadata:
+  name: hcp-cel-hcp-demo
+  namespace: openshift-compliance
+  labels:
+    app.kubernetes.io/part-of: hcp-temp-compliance
+spec:
+  title: HCP CEL workarounds and gap rules (hcp-demo)
+  description: >-
+    etcd env-based checks replacing false-positive rules + HostedCluster
+    STIG/High gap checks + selector sentinel, evaluated against the hosted
+    cluster named by the setValues below. Native per-TP setValues delivery via
+    directly-created Rule CRs (README section 7.2).
+  setValues:
+    - name: hypershiftcluster
+      value: hcp-demo
+      rationale: "Selector: name of the hosted cluster to assess"
+    - name: hypershiftprefix
+      value: clusters
+      rationale: "Selector: HostedCluster namespace / control-plane namespace prefix"
+  enableRules:
+    - kind: Rule
+      name: hcp-selector-valid
+      rationale: Selector sanity sentinel - check this result first
+    - kind: Rule
+      name: hcp-etcd-cert-file
+      rationale: HyperShift temp compliance workaround
+    - kind: Rule
+      name: hcp-etcd-key-file
+      rationale: HyperShift temp compliance workaround
+    - kind: Rule
+      name: hcp-etcd-client-cert-auth
+      rationale: HyperShift temp compliance workaround
+    - kind: Rule
+      name: hcp-etcd-peer-cert-file
+      rationale: HyperShift temp compliance workaround
+    - kind: Rule
+      name: hcp-etcd-peer-key-file
+      rationale: HyperShift temp compliance workaround
+    - kind: Rule
+      name: hcp-etcd-peer-client-cert-auth
+      rationale: HyperShift temp compliance workaround
+    - kind: Rule
+      name: hcp-fips-enabled
+      rationale: HyperShift temp compliance workaround
+    - kind: Rule
+      name: hcp-etcd-secret-encryption
+      rationale: HyperShift temp compliance workaround
+    - kind: Rule
+      name: hcp-audit-profile
+      rationale: HyperShift temp compliance workaround
+    - kind: Rule
+      name: hcp-api-tls-security-profile
+      rationale: HyperShift temp compliance workaround
+    - kind: Rule
+      name: hcp-oauth-token-maxage
+      rationale: HyperShift temp compliance workaround (server half)
+    - kind: Rule
+      name: hcp-oauth-inactivity-timeout
+      rationale: HyperShift temp compliance workaround (server half)
+    - kind: Rule
+      name: hcp-audit-webhook
+      rationale: HyperShift temp compliance workaround
+    - kind: Rule
+      name: hcp-nodepool-config
+      rationale: HyperShift temp compliance workaround
