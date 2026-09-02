@@ -62,7 +62,7 @@ New manifests in this directory:
 | File | Purpose |
 |---|---|
 | `hosted/co-install.yaml` | OLM install of CO v1.9.1 inside the hosted cluster, matching the official documented procedure ([Installing the Compliance Operator on Hypershift hosted control planes](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#installing-compliance-operator-hcp_compliance-operator-installation), Technology Preview): `spec.config.env` `PLATFORM=HyperShift` + `spec.config.nodeSelector: {node-role.kubernetes.io/worker: ""}`. Without the overrides the operator pod stays Pending (CSV pins to masters; hosted clusters have none) — our validation independently confirmed the documented settings are load-bearing. |
-| `hosted/tp.yaml` | `hosted-cis-tailored` / `hosted-stig-tailored` / `hosted-high-tailored` — disable the control-plane rules (46 / 6 / 56, incl. the split OAuth OR rules) inside the hosted cluster |
+| `hosted/tp.yaml` | `hosted-cis-tailored` / `hosted-stig-tailored` / `hosted-high-tailored` — disable the control-plane rules (46 / 7 / 57, incl. the split OAuth OR rules and `cluster-version-operator-verify-integrity`) inside the hosted cluster |
 | `hosted/customrules.yaml`, `hosted/tp-cel.yaml` | the 3 in-hosted CEL rules (OAuth client halves + audit-error alert) and their TailoredProfile |
 | `hosted/ssb.yaml` | tailored platform + CEL bindings |
 
@@ -121,7 +121,41 @@ platform rule of all three profiles.
 2. `oauth_or_oauthclient_inactivity_timeout` and siblings not HyperShift-aware — CEL gap rules shipped here. Filed: CMP-4524.
 3. Downstream CSV master `nodeSelector` blocks OLM install on hosted clusters — the Subscription override (worker nodeSelector + PLATFORM env) is the officially documented install procedure ([Installing the Compliance Operator on Hypershift hosted control planes](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#installing-compliance-operator-hcp_compliance-operator-installation), Technology Preview); validated live. CMP-4522 filed before finding the docs — to be closed or rescoped to 'tolerate masterless topologies natively'.
 4. `ocp4-on-hypershift-hosted` CPE unreachable (initContainer vs `.spec.containers` OVAL mismatch) — affects platform profiles run in-hosted, which is beyond the current node-profiles-only support scope; this package's in-hosted tailored profiles are the workaround that makes those scans usable. Filed: CMP-4521.
-5. `api-resource-collector` lacks RBAC for `nodepools` (has `hostedclusters` via cluster-reader aggregation) — `rbac-hypershift-read.yaml` required for the NodePool CEL rule. Filed: CMP-4523.
+5. `cluster_version_operator_verify_integrity` is a structural false positive in hosted
+   clusters — the CVO performs NO release-image signature verification on HyperShift
+   (confirmed by OTA/HCP engineering: the CPO deploys the CVO with a pre-extracted
+   `PAYLOAD_OVERRIDE` payload and a `RELEASE_IMAGE` matching the desired image, so
+   `RetrievePayload` returns `Local: true` and never reaches the verification path).
+   `.status.history[].verified` is therefore false on every entry, permanently.
+   Round 1 recorded this rule as PASS in-hosted, which was a **vacuous pass**: the
+   rule's jq filter is `[.status.history[0:-1]|.[]|.verified]`, which drops the newest
+   entry, and `hcp-aws` was a fresh never-upgraded cluster with exactly one history
+   entry — the filtered set was empty, so `check_existence: any_exist` passed with
+   nothing to check. Any hosted cluster that has been upgraded once has >=2 entries,
+   all `verified: false`, and FAILs permanently (history is append-only/immutable).
+   Now disabled in `hosted/tp.yaml` (STIG + High; CIS does not carry the rule).
+   Compensating control for the SSP: the management cluster's own CVO verifies its
+   releases, and the HyperShift Operator / CPO control which release image the hosted
+   control plane runs. Content fix would be to gate the rule
+   `not ocp4-on-hypershift-hosted` (blocked on CMP-4521); platform fix is an RFE
+   against OTA-951 / RFE-8928.
+   The CONTROL is still automatable: `cluster_version_operator_verify_integrity` is
+   only one member of a rule set. CNTR-OS-000740 (STIG) and SA-10(1) (NIST High) also
+   select `cluster_version_operator_exists` (PASSes in-hosted) and, for SA-10(1),
+   `reject_unsigned_images_by_default`; STIG carries the same requirement separately as
+   CNTR-OS-000360 ("OpenShift must verify container images"). That rule is
+   `platform: ocp4-node`, is selected in `ocp4-stig-node` and `ocp4-high-node` (the
+   SUPPORTED in-hosted surface), and checks `/etc/containers/policy.json` for
+   `"default": [{"type": "reject"}]` - runtime-level signature enforcement on every
+   image pull, which is what the control text actually asks for. Default RHCOS ships
+   `insecureAcceptAnything`, so the rule FAILs until remediated. Remediation on HCP
+   goes through `NodePool.spec.config` (hosted clusters run no MCO). NOTE: the
+   MachineConfig in the upstream STIG fixtext sets the default to `reject` but exempts
+   `quay.io/openshift-release-dev` with `insecureAcceptAnything`, so it passes the rule
+   without enforcing RELEASE-image signatures - add a `signedBy` entry plus the
+   matching `registries.d` signature store for the release registry (or the local
+   mirror) to meet the intent of CNTR-OS-000740.
+6. `api-resource-collector` lacks RBAC for `nodepools` (has `hostedclusters` via cluster-reader aggregation) — `rbac-hypershift-read.yaml` required for the NodePool CEL rule. Filed: CMP-4523.
 
 
 ## Rounds 2-4: revalidation evidence (2026-08-10/11)

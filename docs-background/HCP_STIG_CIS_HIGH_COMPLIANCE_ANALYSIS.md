@@ -33,6 +33,12 @@ see errata). For current live numbers use the Solution README and the matrix.
 > 4. The section 7.2 CEL catalog was implemented and validated 14/14
 >    (`customrules.yaml`); the upstream work in section 9 is filed as CMP-4520 and
 >    CMP-4524.
+> 5. `cluster_version_operator_verify_integrity` was originally listed under Layer A
+>    and has been removed from those lists: the CVO runs no release-image signature
+>    verification on HyperShift at all, so the rule is structurally unanswerable
+>    in-hosted (vacuous PASS on a never-upgraded cluster, permanent FAIL after the
+>    first upgrade). It is now disabled in `hosted/tp.yaml` and carried as an SSP
+>    statement - see VALIDATION.md finding 5 and RULE_COVERAGE_MATRIX.md.
 
 **Audience:** customers and support engineers who manage their own Hosted Control Planes
 (HyperShift) environment and need to satisfy DISA STIG, CIS OpenShift Benchmark, and
@@ -143,7 +149,7 @@ carries 48. Classification for a management-cluster tailored scan:
 
 | Disposition | Rules |
 |---|---|
-| Layer A (in-hosted scan gives the correct answer) | `classification_banner`, `cluster_logging_operator_exist`, `cluster_version_operator_exists`, `cluster_version_operator_verify_integrity`, `container_security_operator_exists`, `image_pruner_active`, `imagestream_sets_schedule`, `ingress_controller_tls_security_profile`, `oauth_logout_url_set`, `ocp_allowed_registries`, `ocp_allowed_registries_for_import`, `ocp_insecure_allowed_registries_for_import`, `ocp_insecure_registries`, `openshift_motd_exists`, `project_config_and_template_network_policy`, `project_config_and_template_resource_quota`, `resource_requests_quota_per_project`, `routes_rate_limit`, `scansettingbinding_exists`, `scansettings_have_schedule` |
+| Layer A (in-hosted scan gives the correct answer) | `classification_banner`, `cluster_logging_operator_exist`, `cluster_version_operator_exists`, `container_security_operator_exists`, `image_pruner_active`, `imagestream_sets_schedule`, `ingress_controller_tls_security_profile`, `oauth_logout_url_set`, `ocp_allowed_registries`, `ocp_allowed_registries_for_import`, `ocp_insecure_allowed_registries_for_import`, `ocp_insecure_registries`, `openshift_motd_exists`, `project_config_and_template_network_policy`, `project_config_and_template_resource_quota`, `resource_requests_quota_per_project`, `routes_rate_limit`, `scansettingbinding_exists`, `scansettings_have_schedule` |
 | Layer E (CEL CustomRule against HostedCluster, section 7) | `api_server_tls_security_profile`, `audit_profile_set`, `oauth_or_oauthclient_inactivity_timeout`, `oauth_or_oauthclient_token_maxage`, `fips_mode_enabled_on_all_nodes`, `audit_log_forwarding_uses_tls` (webhook variant) |
 | Layer A or D + manual judgment | `audit_error_alert_exists` (the alert matters on the mgmt cluster, where the hosted KAS runs) |
 | Manual (attest against the hosted cluster) | `rbac_least_privilege`, `rbac_logging_del`, `rbac_logging_mod`, `rbac_logging_view`, `scc_limit_host_dir_volume_plugin`, `scc_limit_host_ports`, `scc_limit_ipc_namespace`, `scc_limit_network_namespace`, `scc_limit_privileged_containers`, `scc_limit_process_id_namespace`, `scc_limit_root_containers` |
@@ -174,7 +180,7 @@ unchanged. The High-specific additions beyond CIS are 28 wrong-target rules:
 
 | Disposition | Rules |
 |---|---|
-| Layer A (in-hosted) | `api_server_api_priority_flowschema_catch_all`, `banner_or_login_template_set`*, `cluster_logging_operator_exist`, `cluster_version_operator_exists`, `cluster_version_operator_verify_integrity`, `compliance_notification_enabled`, `default_ingress_ca_replaced`, `gitops_operator_exists`, `ingress_controller_certificate`, `ingress_controller_tls_security_profile`, `openshift_motd_exists`, `resource_requests_limits_in_daemonset`, `resource_requests_limits_in_deployment`, `resource_requests_limits_in_statefulset`, `resource_requests_quota`, `route_ip_whitelist`, `routes_protected_by_tls`, `routes_rate_limit`, `scansettingbinding_exists` |
+| Layer A (in-hosted) | `api_server_api_priority_flowschema_catch_all`, `banner_or_login_template_set`*, `cluster_logging_operator_exist`, `cluster_version_operator_exists`, `compliance_notification_enabled`, `default_ingress_ca_replaced`, `gitops_operator_exists`, `ingress_controller_certificate`, `ingress_controller_tls_security_profile`, `openshift_motd_exists`, `resource_requests_limits_in_daemonset`, `resource_requests_limits_in_deployment`, `resource_requests_limits_in_statefulset`, `resource_requests_quota`, `route_ip_whitelist`, `routes_protected_by_tls`, `routes_rate_limit`, `scansettingbinding_exists` |
 | Layer E (CEL against HostedCluster) | `api_server_tls_security_profile`, `cluster_wide_proxy_set`, `fips_mode_enabled_on_all_nodes`, `oauth_or_oauthclient_inactivity_timeout`, `oauth_or_oauthclient_token_maxage` |
 | Layer D (management-cluster concern for the hosted CP) | `audit_error_alert_exists`, `audit_log_forwarding_uses_tls` |
 | Manual | `alert_receiver_configured`, `general_configure_imagepolicywebhook` |
