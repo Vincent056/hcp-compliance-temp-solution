@@ -120,6 +120,8 @@ spec:
       rationale: Control-plane rule; hosted CPE detection broken (init-container vs containers OVAL mismatch), disabled to replicate ocp4-on-hypershift-hosted gating
     - name: ocp4-audit-log-forwarding-enabled
       rationale: Control-plane rule; hosted CPE detection broken (init-container vs containers OVAL mismatch), disabled to replicate ocp4-on-hypershift-hosted gating
+    - name: ocp4-cluster-version-operator-verify-integrity
+      rationale: "Structural false positive in-hosted: the CVO performs no release-image signature verification on HyperShift (confirmed by OTA/HCP engineering), so every clusterversion history entry is verified=false forever. The rule's jq filter drops the newest entry, so a never-upgraded hosted cluster passes vacuously and every upgraded one FAILs permanently (history is immutable). Release-image trust is delegated to the management cluster; record as an SSP compensating control."
     - name: ocp4-oauth-login-template-set
       rationale: Control-plane rule; hosted CPE detection broken (init-container vs containers OVAL mismatch), disabled to replicate ocp4-on-hypershift-hosted gating
     - name: ocp4-oauth-provider-selection-set
@@ -212,6 +214,8 @@ spec:
       rationale: Control-plane rule; hosted CPE detection broken (init-container vs containers OVAL mismatch), disabled to replicate ocp4-on-hypershift-hosted gating
     - name: ocp4-audit-log-forwarding-enabled
       rationale: Control-plane rule; hosted CPE detection broken (init-container vs containers OVAL mismatch), disabled to replicate ocp4-on-hypershift-hosted gating
+    - name: ocp4-cluster-version-operator-verify-integrity
+      rationale: "Structural false positive in-hosted: the CVO performs no release-image signature verification on HyperShift (confirmed by OTA/HCP engineering), so every clusterversion history entry is verified=false forever. The rule's jq filter drops the newest entry, so a never-upgraded hosted cluster passes vacuously and every upgraded one FAILs permanently (history is immutable). Release-image trust is delegated to the management cluster; record as an SSP compensating control."
     - name: ocp4-controller-insecure-port-disabled
       rationale: Control-plane rule; hosted CPE detection broken (init-container vs containers OVAL mismatch), disabled to replicate ocp4-on-hypershift-hosted gating
     - name: ocp4-controller-rotate-kubelet-server-certs

@@ -40,12 +40,14 @@ COMPLIANT out of the box**.
 | Covered — HyperShift-aware | 6 | `api-server-encryption-provider-cipher`, `idp-is-configured`, `ocp-idp-no-htpasswd`, `ocp-no-ldap-insecure`, `oauth-login-template-set`, `oauth-provider-selection-set` |
 | Covered — CEL gap rules | 6 | `fips-mode-enabled-on-all-nodes` -> `hcp-fips-enabled` (authoritative `spec.fips`); `api-server-tls-security-profile` -> `hcp-api-tls-security-profile`; `audit-profile-set` -> `hcp-audit-profile`; `oauth-or-oauthclient-token-maxage`/`-inactivity-timeout` -> CEL pair; `audit-log-forwarding-uses-tls` -> `hcp-audit-webhook` (existence; TLS of the webhook target needs manual attestation) |
 | Correctly NOT-APPLICABLE | 4 | same as CIS |
-| Covered — in-hosted tailored scan (validated - [`VALIDATION.md`](VALIDATION.md)) | 18 | `classification-banner`, `openshift-motd-exists`, `oauth-logout-url-set`, `ocp-*registries*` (x4), `image-pruner-active`, `imagestream-sets-schedule`, `project-config-and-template-network-policy`/`-resource-quota`, `resource-requests-quota-per-project`, `routes-rate-limit`, `ingress-controller-tls-security-profile`, `cluster-logging-operator-exist`, `cluster-version-operator-exists`/`-verify-integrity`, `container-security-operator-exists` |
+| Covered — in-hosted tailored scan (validated - [`VALIDATION.md`](VALIDATION.md)) | 17 | `classification-banner`, `openshift-motd-exists`, `oauth-logout-url-set`, `ocp-*registries*` (x4), `image-pruner-active`, `imagestream-sets-schedule`, `project-config-and-template-network-policy`/`-resource-quota`, `resource-requests-quota-per-project`, `routes-rate-limit`, `ingress-controller-tls-security-profile`, `cluster-logging-operator-exist`, `cluster-version-operator-exists`, `container-security-operator-exists` |
+| **No automated equivalent (SSP statement)** | 1 | `cluster-version-operator-verify-integrity` — the CVO performs no release-image signature verification on HyperShift (confirmed by OTA/HCP engineering), so the check is structurally unanswerable in-hosted; disabled in `hosted/tp.yaml`. The control itself (CNTR-OS-000740, and CNTR-OS-000360 "OpenShift must verify container images") is carried by `reject_unsigned_images_by_default` in `ocp4-stig-node` - see the node dimension below |
 | Covered — other layers | 3 | `audit-error-alert-exists` (mgmt self-scan, Layer D), `scansettingbinding-exists` + `scansettings-have-schedule` (satisfied by the validated in-hosted CO install) |
 | Manual attestation | 11 | rbac_logging_* / rbac_least_privilege / scc_limit_* |
 
-Net (combined): **all 33 automatable platform rules (100%) covered — 6 mgmt-aware +
-6 CEL + 18 in-hosted + 3 via other layers.** Management side alone covers only
+Net (combined): **32 of 33 automatable platform rules (97%) covered — 6 mgmt-aware +
+6 CEL + 17 in-hosted + 3 via other layers; `cluster-version-operator-verify-integrity`
+has no automated equivalent on HCP (SSP statement).** Management side alone covers only
 12 of 33 (36%) because just 6 rules were ever made HyperShift-aware — the in-hosted
 and CEL layers are what make STIG whole.
 
@@ -62,13 +64,14 @@ since hosted clusters run no MCO (scan-only in this validation).
 | Covered — HyperShift-aware (inherited from CIS + OAuth/IdP set) | 57 | validated live: audit-log sizes, admission plugins, etcd client/serving certs of KAS, encryption, IdP, webhook forwarding, CP NetworkPolicies |
 | Covered — CEL | 15 | 6 etcd + `api-server-tls-security-profile(+-not-old/-custom)` + `audit-logging-enabled`/`audit-profile-set` + `fips` + OAuth max-age/inactivity + audit webhook |
 | Correctly NOT-APPLICABLE | 9 | CIS 4 + `file-integrity-*` (2, `not ocp4-on-hypershift`) + SDN-gated proxy-kubeconfig (3, OVN) |
-| Covered — in-hosted tailored scan (validated - [`VALIDATION.md`](VALIDATION.md)) | ~30 | the CIS-13 plus: `banner-or-login-template-set`, `default-ingress-ca-replaced`, `ingress-controller-certificate`/`-tls-security-profile`, `resource-requests-limits-in-daemonset/deployment/statefulset`, `resource-requests-quota`, `route-ip-whitelist`, `routes-protected-by-tls`, `routes-rate-limit`, `api-server-api-priority-flowschema-catch-all`, `gitops-operator-exists`, `cluster-logging-operator-exist`, `cluster-version-operator-exists`/`-verify-integrity`, `compliance-notification-enabled`, `scansettingbinding-exists` |
-| Gap/other layers | 4 | `no-unsupported-config-overrides` x2 (architectural, as CIS); `audit-error-alert-exists` (mgmt); `cluster-wide-proxy-set` (CEL rule available in [`HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md`](docs-background/HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) section 7.2(h), not deployed here — no proxy in this environment) |
+| Covered — in-hosted tailored scan (validated - [`VALIDATION.md`](VALIDATION.md)) | ~29 | the CIS-13 plus: `banner-or-login-template-set`, `default-ingress-ca-replaced`, `ingress-controller-certificate`/`-tls-security-profile`, `resource-requests-limits-in-daemonset/deployment/statefulset`, `resource-requests-quota`, `route-ip-whitelist`, `routes-protected-by-tls`, `routes-rate-limit`, `api-server-api-priority-flowschema-catch-all`, `gitops-operator-exists`, `cluster-logging-operator-exist`, `cluster-version-operator-exists`, `compliance-notification-enabled`, `scansettingbinding-exists` |
+| Gap/other layers | 5 | `no-unsupported-config-overrides` x2 (architectural, as CIS); `cluster-version-operator-verify-integrity` (no automated equivalent on HCP — SSP statement, see STIG table); `audit-error-alert-exists` (mgmt); `cluster-wide-proxy-set` (CEL rule available in [`HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md`](docs-background/HCP_STIG_CIS_HIGH_COMPLIANCE_ANALYSIS.md) section 7.2(h), not deployed here — no proxy in this environment) |
 | Manual attestation | 25 | superset of CIS manual rules |
 
-Net (combined): **~98 of 100 automatable platform rules (98%) covered — 51
-mgmt-aware + 15 CEL + ~30 in-hosted + 2 via other layers; the 2
-`no-unsupported-config-overrides` rules remain SSP statements.** Management side
+Net (combined): **~97 of 100 automatable platform rules (97%) covered — 51
+mgmt-aware + 15 CEL + ~29 in-hosted + 2 via other layers; the 2
+`no-unsupported-config-overrides` rules and
+`cluster-version-operator-verify-integrity` remain SSP statements.** Management side
 alone covers 72 of 100 (72%).
 
 **Node dimension — `ocp4-high-node` + `rhcos4-high` (123 rules):** live results:

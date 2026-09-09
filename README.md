@@ -104,15 +104,16 @@ CMP-4520/21/23/24 for the individual content gaps.
 |---|---|---|---|
 | Mgmt scan, HyperShift-aware (truthful hosted-CP results) | 47 | 6 | 57 |
 | CEL CustomRules (replacements + gap rules) | 10 | 6 | 15 |
-| In-hosted scan (in-cluster half) | 13 | 21 | ~30 |
+| In-hosted scan (in-cluster half) | 13 | 20 | ~29 |
 | Correctly NOT-APPLICABLE (auto-suppressed, SDN-gated, or architectural) | 7 | 4 | 12 |
 | Manual attestation (attest vs hosted cluster) | 21 | 11 | 25 |
-| **No automated equivalent (record in the System Security Plan)** | **2** | **0** | **2** |
+| **No automated equivalent (record in the System Security Plan)** | **2** | **1** | **3** |
 | Node-dimension rules (in-hosted node profiles) | 103 | 121 | 123 |
 
 Bottom line: with all layers deployed, **every automated platform rule has exactly
-one authoritative source except the two `no-unsupported-config-overrides` rules**
-(architecturally N/A on HCP - record in the SSP). The weakest single layer is the
+one authoritative source except the two `no-unsupported-config-overrides` rules and
+`cluster-version-operator-verify-integrity`** (architecturally N/A on HCP - record in
+the SSP; the CVO runs no signature verification on HyperShift, see the findings table). The weakest single layer is the
 STIG mgmt scan (only 6 aware rules); the in-hosted + CEL layers close most of it.
 
 ## Findings discovered and filed during validation
@@ -124,6 +125,7 @@ STIG mgmt scan (only 6 aware rules); the in-hosted + CEL layers close most of it
 | CMP-4522 (Bug, Major) | CSV master `nodeSelector` blocks scheduling on hosted clusters — the Subscription override is ALREADY the documented install procedure ([Installing the Compliance Operator on Hypershift hosted control planes](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/security_and_compliance/compliance-operator#installing-compliance-operator-hcp_compliance-operator-installation), Technology Preview); ticket to be closed/rescoped |
 | CMP-4523 (Story) | Collector SA lacks `nodepools` RBAC for CEL inputs |
 | CMP-4524 (Story) | Extend HyperShift awareness to the HostedCluster-derivable rules |
+| CMP-TBD (Bug) | `cluster_version_operator_verify_integrity` is a structural false positive in hosted clusters: the CVO performs **no** release-image signature verification on HyperShift (confirmed by OTA/HCP engineering; the CPO deploys the CVO with a pre-extracted `PAYLOAD_OVERRIDE` payload and a matching `RELEASE_IMAGE`, so the verification path is never entered), leaving `.status.history[].verified` false forever. The rule's jq filter drops the newest history entry, so a never-upgraded hosted cluster passes vacuously (what round 1 saw) and every upgraded one FAILs permanently. Content fix: gate the rule `not ocp4-on-hypershift-hosted` (blocked on CMP-4521). Platform fix: an RFE against OTA-951 / RFE-8928. Temp solution here: disabled in `hosted/tp.yaml` (STIG + High) with the management cluster as the compensating control. |
 | CMP-4550 (Bug, Major, target 1.10.0) | TailoredProfile `setValues` silently ignored by CEL rules + validation asymmetry - the fix migrates this repo's Rule-CR selector back to admission-validated CustomRules ([`DESIGN.md`](DESIGN.md)) |
 
 Full per-rule detail: [`RULE_COVERAGE_MATRIX.md`](RULE_COVERAGE_MATRIX.md). Multi-cluster fleets: [`DESIGN.md`](DESIGN.md).
